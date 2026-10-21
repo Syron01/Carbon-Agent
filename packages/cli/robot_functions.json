@@ -1,0 +1,42 @@
+[
+  {
+    "name": "move_base",
+    "description": "Robotun govdesini sag-sol ekseninde dondurur. (Servo 0)",
+    "parameters": [
+      { "name": "angle", "type": "number", "description": "0-180 derece arasi aci" }
+    ]
+  },
+  {
+    "name": "move_shoulder",
+    "description": "Robotun omuz eklemini yukari-asagi hareket ettirir. (Servo 1)",
+    "parameters": [
+      { "name": "angle", "type": "number", "description": "0-180 derece arasi aci" }
+    ]
+  },
+  {
+    "name": "move_elbow",
+    "description": "Robotun dirsek eklemini hareket ettirir. (Servo 2)",
+    "parameters": [
+      { "name": "angle", "type": "number", "description": "0-180 derece arasi aci" }
+    ]
+  },
+  {
+    "name": "move_wrist",
+    "description": "Robotun bilek/kamera eklemini dondurur. (Servo 3/Channel 4)",
+    "parameters": [
+      { "name": "angle", "type": "number", "description": "0-180 derece arasi aci" }
+    ]
+  },
+  {
+    "name": "control_vacuum",
+    "description": "Vakum tutucuyu (gripper) acar veya kapatir. (Pin 7)",
+    "parameters": [
+      { "name": "enabled", "type": "boolean", "description": "true: Vakum aktif (tut), false: Vakum kapali (birak)" }
+    ]
+  },
+  {
+    "name": "reset_arm",
+    "description": "Robot kolunu baslangic/guvenli pozisyonuna getirir.",
+    "parameters": []
+  }
+]

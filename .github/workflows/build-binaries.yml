@@ -1,0 +1,102 @@
+name: Build Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build (e.g., v8.05.2026)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.20
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - name: Build binaries
+        run: ./scripts/build-binaries.sh
+
+      - name: Extract changelog for this version
+        id: changelog
+        shell: bash
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          cd packages/cli
+          awk "/^## \\[${VERSION}\\]/{flag=1; next} /^## \\[/{flag=0} flag" CHANGELOG.md > /tmp/release-notes.md
+          if [ ! -s /tmp/release-notes.md ]; then
+            cat > /tmp/release-notes.md <<EOF
+          Release ${VERSION}
+
+          Minimal UI refresh + MoonCode v2 workspace features.
+
+          Binaries:
+          - Windows x64
+          - Linux x64 / arm64
+          - macOS x64 / arm64
+          EOF
+          fi
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          cd packages/cli/binaries
+          assets=(
+            MoonCode-darwin-arm64.tar.gz
+            MoonCode-darwin-x64.tar.gz
+            MoonCode-linux-x64.tar.gz
+            MoonCode-linux-arm64.tar.gz
+            MoonCode-windows-x64.zip
+          )
+
+          for asset in "${assets[@]}"; do
+            test -f "$asset" || { echo "Missing asset: $asset"; exit 1; }
+          done
+
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release edit "${RELEASE_TAG}" --title "${RELEASE_TAG}" --notes-file /tmp/release-notes.md
+          else
+            gh release create "${RELEASE_TAG}" --title "${RELEASE_TAG}" --notes-file /tmp/release-notes.md
+          fi
+
+          old_assets=(
+            Hodeus-darwin-arm64.tar.gz
+            Hodeus-darwin-x64.tar.gz
+            Hodeus-linux-x64.tar.gz
+            Hodeus-linux-arm64.tar.gz
+            Hodeus-windows-x64.zip
+          )
+
+          for asset in "${old_assets[@]}"; do
+            gh release delete-asset "${RELEASE_TAG}" "$asset" --yes >/dev/null 2>&1 || true
+          done
+
+          for asset in "${assets[@]}"; do
+            gh release upload "${RELEASE_TAG}" "$asset" --clobber
+          done
+

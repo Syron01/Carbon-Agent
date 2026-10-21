@@ -1,0 +1,24 @@
+{
+	"extends": "./tsconfig.base.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"paths": {
+			"*": ["../*"],
+			"astro-core": ["../packages/core/src/index.ts"],
+			"astro-core/oauth": ["../packages/core/src/oauth.ts"],
+			"astro-core/*": ["../packages/core/src/*.ts", "../packages/core/src/providers/*.ts"],
+			"astro-core/dist/*": ["../packages/core/src/*"],
+			"astro-engine": ["../packages/engine/src/index.ts"],
+			"astro-engine/*": ["../packages/engine/src/*"],
+			"astrocli": ["../packages/cli/src/index.ts"],
+			"astrocli/hooks": ["../packages/cli/src/core/hooks/index.ts"],
+			"astrocli/*": ["../packages/cli/src/*"],
+			"typebox": ["../node_modules/typebox"],
+			"astro-tui": ["../packages/tui/src/index.ts"],
+			"astro-tui/*": ["../packages/tui/src/*"]
+		}
+	},
+	"include": ["../packages/*/src/**/*"],
+	"exclude": ["../**/dist/**", "../**/*.test.ts", "../**/test/**", "../packages/cli/examples/**/*"]
+}
+

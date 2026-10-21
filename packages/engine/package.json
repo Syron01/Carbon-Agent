@@ -1,0 +1,44 @@
+{
+	"name": "astro-engine",
+	"version": "49.0.0",
+	"description": "General-purpose state management engine",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist",
+		"README.md"
+	],
+	"scripts": {
+		"clean": "shx rm -rf dist",
+		"build": "tsc -p tsconfig.build.json",
+		"dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+		"test": "vitest run",
+		"prepublishOnly": "npm run clean && npm run build"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.29.0",
+		"typebox": "^1.1.24",
+		"astro-core": "^49.0.0"
+	},
+	"keywords": [
+		"engine",
+		"state-management",
+		"core"
+	],
+	"author": "Ozen (theayzek01)",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Syron01/Carbon-Agent",
+		"directory": "packages/engine"
+	},
+	"engines": {
+		"node": ">=20.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^24.3.0",
+		"typescript": "^5.7.3",
+		"vitest": "^3.2.4"
+	}
+}

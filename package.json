@@ -1,0 +1,82 @@
+{
+	"name": "carbon-agent-monorepo",
+	"private": true,
+	"type": "module",
+	"author": "theayzek01",
+	"workspaces": [
+		"packages/*",
+		"packages/cli/ui"
+	],
+	"scripts": {
+		"clean": "npm run clean --workspaces",
+		"build": "npm run build --workspace=packages/tui && npm run build --workspace=packages/core && npm run build --workspace=packages/engine && npm run build --workspace=packages/cli",
+		"dev": "concurrently --names \"core,engine,cli,tui\" --prefix-colors \"cyan,yellow,red,magenta\" \"cd packages/core && npm run dev\" \"cd packages/engine && npm run dev\" \"cd packages/cli && npm run dev\" \"cd packages/tui && npm run dev\"",
+		"dev:tsc": "cd packages/core && npm run dev:tsc",
+		"check": "biome check --write --error-on-warnings . && tsc --noEmit -p configs/tsconfig.release.json",
+		"check:ci": "biome ci . && tsc --noEmit -p configs/tsconfig.release.json",
+		"security:audit": "npm audit --omit=dev",
+		"test": "npm run test --workspaces --if-present",
+		"version:patch": "npm version patch -ws --no-git-tag-version && node tools/scripts/sync-versions.js && shx rm -rf node_modules packages/*/node_modules package-lock.json && npm install",
+		"version:minor": "npm version minor -ws --no-git-tag-version && node tools/scripts/sync-versions.js && shx rm -rf node_modules packages/*/node_modules package-lock.json && npm install",
+		"version:major": "npm version major -ws --no-git-tag-version && node tools/scripts/sync-versions.js && shx rm -rf node_modules packages/*/node_modules package-lock.json && npm install",
+		"version:set": "npm version -ws",
+		"prepublishOnly": "npm run clean && npm run build && npm run check",
+		"publish": "npm run prepublishOnly && npm publish -ws --access public",
+		"publish:dry": "npm run prepublishOnly && npm publish -ws --access public --dry-run",
+		"release:patch": "node tools/scripts/release.mjs patch",
+		"release:minor": "node tools/scripts/release.mjs minor",
+		"release:major": "node tools/scripts/release.mjs major",
+		"prepare": "husky",
+		"start": "node packages/cli/dist/cli.js",
+		"reset:data": "node tools/scripts/reset-engine-data.mjs",
+		"remote:telegram": "node tools/scripts/telegram-remote.mjs",
+		"maintenance:bump-legacy": "node tools/scripts/maintenance/bump.js",
+		"maintenance:purge-legacy": "node tools/scripts/maintenance/purge.js",
+		"maintenance:rename-legacy": "node tools/scripts/maintenance/rename.js",
+		"themes:sync": "node tools/scripts/maintenance/sync-themes.js"
+	},
+	"devDependencies": {
+		"@anthropic-ai/sandbox-runtime": "^0.0.26",
+		"@biomejs/biome": "2.3.5",
+		"@types/node": "^22.19.17",
+		"@yao-pkg/pkg": "^6.20.0",
+		"concurrently": "^9.2.1",
+		"husky": "^9.1.7",
+		"pkg": "^5.8.1",
+		"shx": "^0.4.0",
+		"tsx": "^4.20.3",
+		"typescript": "^5.7.3"
+	},
+	"engines": {
+		"node": ">=20.0.0"
+	},
+	"version": "49.0.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Syron01/Carbon-Agent"
+	},
+	"homepage": "https://github.com/Syron01/Carbon-Agent",
+	"bin": {
+		"carbonagent": "packages/cli/dist/cli.js",
+		"carbon-agent": "packages/cli/dist/cli.js",
+		"carbon": "packages/cli/dist/cli.js",
+		"astroagent": "packages/cli/dist/cli.js",
+		"astro": "packages/cli/dist/cli.js",
+		"asg": "packages/cli/dist/cli.js",
+		"estro": "packages/cli/dist/cli.js"
+	},
+	"dependencies": {
+		"@mariozechner/jiti": "^2.6.5",
+		"get-east-asian-width": "^1.4.0",
+		"undici": "^8.2.0"
+	},
+	"overrides": {
+		"rimraf": "6.1.2",
+		"gaxios": {
+			"rimraf": "6.1.2"
+		}
+	},
+	"peerDependencies": {
+		"onnxruntime-node": "^1.26.0"
+	}
+}

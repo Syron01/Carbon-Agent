@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Astro-Agent Browser Bridge",
+  "version": "2026.11.1",
+  "version_name": "2026-pre20",
+  "default_locale": "en",
+  "description": "Connects Chrome tabs to the local Astro-Agent terminal session.",
+  "permissions": [
+    "tabs",
+    "scripting",
+    "debugger",
+    "activeTab",
+    "storage",
+    "alarms",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "cursors/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icon.png",
+    "32": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "action": {
+    "default_icon": "icon.png",
+    "default_title": "Astro-Agent Browser Bridge",
+    "default_popup": "popup.html"
+  }
+}

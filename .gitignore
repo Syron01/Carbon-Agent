@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+packages/*/dist/
+packages/*/dist-chrome/
+packages/*/dist-firefox/
+*.tsbuildinfo
+*.cpuprofile
+
+# Logs
+*.log
+tui-debug.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.zed/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Package manager
+.npm/
+
+# Astro Agent runtime data — do not track
+.astroagent/
+*.db
+*.db-shm
+*.db-wal
+
+# Legacy / scratch paths
+.pi_config/
+.opencode/
+.pi/hf-sessions/
+.pi/hf-sessions-backup/
+compaction-results/
+syntax.jsonl
+out.jsonl
+pi-*.html
+out.html
+packages/cli/binaries/
+todo.md
+plans/
+collect.sh
+edit.cjs
+
+# MEV semantic search index cache
+.mevidx
