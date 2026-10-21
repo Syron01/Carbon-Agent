@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
+// @ts-ignore - example extension module (may not be compiled)
 import triggerCompactExtension from "../examples/extensions/trigger-compact.js";
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "../src/core/extensions/index.js";
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { safeBranchName } from "../src/core/git-utils";
+import { safeBranchName } from "../src/core/git-utils.js";
 
 describe("git utils", () => {
 	it("sanitizes branch names into safe git refs", () => {

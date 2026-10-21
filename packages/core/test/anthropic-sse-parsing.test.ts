@@ -80,7 +80,7 @@ function createFakeAnthropicClient(response: Response): Anthropic {
 
 describe("Anthropic raw SSE parsing", () => {
 	it("repairs malformed SSE JSON and malformed streamed tool JSON", async () => {
-		const model = getModel("anthropic", "claude-haiku-4-5");
+		const model = getModel("anthropic", "claude-haiku-4-5")!
 		const context: Context = {
 			messages: [{ role: "user", content: "Use the edit tool.", timestamp: Date.now() }],
 			tools: [
@@ -167,7 +167,7 @@ describe("Anthropic raw SSE parsing", () => {
 	});
 
 	it("ignores unknown SSE events after message_stop", async () => {
-		const model = getModel("anthropic", "claude-haiku-4-5");
+		const model = getModel("anthropic", "claude-haiku-4-5")!
 		const context: Context = {
 			messages: [{ role: "user", content: "Say hello.", timestamp: Date.now() }],
 		};

@@ -5,6 +5,7 @@ import { getModel } from "astro-core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createEngineSession } from "../src/core/sdk.js";
 import { SessionManager } from "../src/core/session-manager.js";
+import { SettingsManager } from "../src/core/settings-manager.js";
 
 describe("createEngineSession session manager defaults", () => {
 	let tempDir: string;
@@ -33,6 +34,7 @@ describe("createEngineSession session manager defaults", () => {
 			cwd,
 			engineDir,
 			model: model!,
+			settingsManager: SettingsManager.inMemory(),
 		});
 
 		const safePath = `--${cwd.replace(/^[/\\]/, "").replace(/[/\\:]/g, "-")}--`;
@@ -56,6 +58,7 @@ describe("createEngineSession session manager defaults", () => {
 			engineDir,
 			model: model!,
 			sessionManager,
+			settingsManager: SettingsManager.inMemory(),
 		});
 
 		expect(session.sessionManager).toBe(sessionManager);
@@ -75,6 +78,7 @@ describe("createEngineSession session manager defaults", () => {
 			engineDir,
 			model: model!,
 			sessionManager,
+			settingsManager: SettingsManager.inMemory(),
 		});
 
 		expect(session.sessionManager).toBe(sessionManager);

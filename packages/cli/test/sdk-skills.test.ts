@@ -6,6 +6,7 @@ import { createExtensionRuntime } from "../src/core/extensions/loader.js";
 import type { ResourceLoader } from "../src/core/resource-loader.js";
 import { createEngineSession } from "../src/core/sdk.js";
 import { SessionManager } from "../src/core/session-manager.js";
+import { SettingsManager } from "../src/core/settings-manager.js";
 import { createSyntheticSourceInfo } from "../src/core/source-info.js";
 
 describe("createEngineSession skills option", () => {
@@ -43,6 +44,7 @@ This is a test skill.
 			cwd: tempDir,
 			engineDir: tempDir,
 			sessionManager: SessionManager.inMemory(),
+			settingsManager: SettingsManager.inMemory(),
 		});
 
 		// Skills should be discovered and exposed on the session
@@ -68,6 +70,7 @@ This is a test skill.
 			engineDir: tempDir,
 			sessionManager: SessionManager.inMemory(),
 			resourceLoader,
+			settingsManager: SettingsManager.inMemory(),
 		});
 
 		expect(session.resourceLoader.getSkills().skills).toEqual([]);
@@ -101,6 +104,7 @@ This is a test skill.
 			engineDir: tempDir,
 			sessionManager: SessionManager.inMemory(),
 			resourceLoader,
+			settingsManager: SettingsManager.inMemory(),
 		});
 
 		expect(session.resourceLoader.getSkills().skills).toEqual([customSkill]);

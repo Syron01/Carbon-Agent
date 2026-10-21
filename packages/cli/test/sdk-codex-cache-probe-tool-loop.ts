@@ -24,6 +24,7 @@ import {
 import {
 	getOpenAICodexWebSocketDebugStats,
 	streamSimpleOpenAICodexResponses,
+// @ts-ignore - external ai package (may not be in workspace)
 } from "../../ai/src/providers/openai-codex-responses.js";
 import { AuthStorage } from "../src/core/auth-storage.js";
 import { createExtensionRuntime } from "../src/core/extensions/loader.js";

@@ -230,7 +230,7 @@ describe("shouldCompact", () => {
 			enabled: true,
 			reserveTokens: 10000,
 			keepRecentTokens: 20000,
-			profile: "conservative",
+			profile: "balanced",
 		};
 
 		expect(shouldCompact(95000, 100000, settings)).toBe(true);

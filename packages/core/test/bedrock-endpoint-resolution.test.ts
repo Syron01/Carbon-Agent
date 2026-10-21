@@ -91,14 +91,14 @@ async function captureClientConfig(model: Model<"bedrock-converse-stream">): Pro
 
 describe("bedrock endpoint resolution", () => {
 	it("assigns eu-central-1 runtime URLs to built-in EU inference profiles", () => {
-		const model = getModel("amazon-bedrock", "eu.anthropic.claude-sonnet-4-5-20250929-v1:0");
+		const model = getModel("amazon-bedrock", "eu.anthropic.claude-sonnet-4-5-20250929-v1:0")!;
 
 		expect(model.baseUrl).toBe("https://bedrock-runtime.eu-central-1.amazonaws.com");
 	});
 
 	it("does not pin standard AWS endpoints when AWS_REGION is configured", async () => {
 		process.env.AWS_REGION = "us-east-2";
-		const model = getModel("amazon-bedrock", "us.anthropic.claude-opus-4-7");
+		const model = getModel("amazon-bedrock", "us.anthropic.claude-opus-4-7")!;
 
 		const config = await captureClientConfig(model);
 
@@ -107,7 +107,7 @@ describe("bedrock endpoint resolution", () => {
 	});
 
 	it("derives region from a built-in EU endpoint when no region or profile is configured", async () => {
-		const model = getModel("amazon-bedrock", "eu.anthropic.claude-sonnet-4-5-20250929-v1:0");
+		const model = getModel("amazon-bedrock", "eu.anthropic.claude-sonnet-4-5-20250929-v1:0")!;
 
 		const config = await captureClientConfig(model);
 
