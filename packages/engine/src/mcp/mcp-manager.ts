@@ -68,11 +68,30 @@ class HeaderStdioMcpClient {
 	private start(): void {
 		if (this.proc && !this.proc.killed) return;
 
+		// On Windows, .cmd/.bat shims (npx, npm, ...) cannot be spawned directly
+		// without a shell — they raise ENOENT/EINVAL.
+		const isWin = process.platform === "win32";
+		const needsShell =
+			isWin &&
+			(/\.(cmd|bat)$/i.test(this.config.command) || /^(npx|npm|yarn|pnpm)(\.cmd|\.bat)?$/i.test(this.config.command));
+
 		this.proc = spawn(this.config.command, this.config.args ?? [], {
 			cwd: this.config.cwd,
 			env: { ...process.env, ...(this.config.env ?? {}) },
 			stdio: ["pipe", "pipe", "pipe"],
 			windowsHide: true,
+			shell: needsShell,
+		});
+
+		this.proc.on("error", (error) => {
+			const failure = new Error(`MCP server ${this.name} failed to start: ${error.message}`);
+			for (const pending of this.pending.values()) {
+				clearTimeout(pending.timeout);
+				pending.reject(failure);
+			}
+			this.pending.clear();
+			this.proc = undefined;
+			this.initialized = false;
 		});
 
 		this.proc.stdout.on("data", (chunk) => this.read(chunk));
@@ -127,6 +146,12 @@ class HeaderStdioMcpClient {
 		return new Promise((resolve, reject) => {
 			const timeout = setTimeout(() => {
 				this.pending.delete(id);
+				// Kill the wedged child so the next request respawns a fresh process.
+				if (this.proc && !this.proc.killed) {
+					this.proc.kill();
+				}
+				this.proc = undefined;
+				this.initialized = false;
 				reject(new Error(`Timed out waiting for ${this.name}:${method}`));
 			}, timeoutMs);
 			this.pending.set(id, { resolve, reject, timeout });

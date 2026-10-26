@@ -543,7 +543,7 @@ describe("Generate E2E Tests", () => {
 		});
 	});
 
-	describe.skipIf(!process.env.XCore_API_KEY)("xCore Provider (grok-code-fast-1 via OpenAI Completions)", () => {
+	describe.skipIf(!process.env.XAI_API_KEY)("xAI Provider (grok-code-fast-1 via OpenAI Completions)", () => {
 		const llm = getModel("xai", "grok-code-fast-1");
 
 		it("should complete basic text generation", { retry: 3 }, async () => {
@@ -616,7 +616,7 @@ describe("Generate E2E Tests", () => {
 	});
 
 	describe.skipIf(!hasCloudflareWorkersCoreCredentials())(
-		"Cloudflare Workers Core Provider (Kimi K2.6 via OpenAI Completions)",
+		"Cloudflare Workers AI Provider (Kimi K2.6 via OpenAI Completions)",
 		() => {
 			const llm = getModel("cloudflare-workers-ai", "@cf/moonshotai/kimi-k2.6");
 
@@ -643,7 +643,7 @@ describe("Generate E2E Tests", () => {
 	);
 
 	describe.skipIf(!hasCloudflareAiGatewayCredentials())(
-		"Cloudflare Core Gateway → Workers Core (Kimi K2.6 via /compat)",
+		"Cloudflare AI Gateway → Workers AI (Kimi K2.6 via /compat)",
 		() => {
 			const llm = getModel("cloudflare-ai-gateway", "workers-ai/@cf/moonshotai/kimi-k2.6");
 
@@ -670,7 +670,7 @@ describe("Generate E2E Tests", () => {
 	);
 
 	describe.skipIf(!hasCloudflareAiGatewayCredentials() || !process.env.OpenAI_API_KEY)(
-		"Cloudflare Core Gateway → OpenAI BYOK (gpt-5.1 via /openai responses)",
+		"Cloudflare AI Gateway → OpenAI BYOK (gpt-5.1 via /openai responses)",
 		() => {
 			const llm = getModel("cloudflare-ai-gateway", "gpt-5.1");
 			const options = { headers: { Authorization: `Bearer ${process.env.OpenAI_API_KEY}` } };
@@ -703,7 +703,7 @@ describe("Generate E2E Tests", () => {
 	);
 
 	describe.skipIf(!hasCloudflareAiGatewayCredentials() || !process.env.ANTHROPIC_API_KEY)(
-		"Cloudflare Core Gateway → Anthropic BYOK (claude-sonnet-4-5 via /anthropic messages)",
+		"Cloudflare AI Gateway → Anthropic BYOK (claude-sonnet-4-5 via /anthropic messages)",
 		() => {
 			const llm = getModel("cloudflare-ai-gateway", "claude-sonnet-4-5");
 			const options = { headers: { Authorization: `Bearer ${process.env.ANTHROPIC_API_KEY}` } };
@@ -787,8 +787,8 @@ describe("Generate E2E Tests", () => {
 		});
 	});
 
-	describe.skipIf(!process.env.Core_GATEWAY_API_KEY)(
-		"Vercel Core Gateway Provider (google/gemini-2.5-flash via Anthropic Messages)",
+	describe.skipIf(!process.env.AI_GATEWAY_API_KEY)(
+		"Vercel AI Gateway Provider (google/gemini-2.5-flash via Anthropic Messages)",
 		() => {
 			const llm = getModel("vercel-ai-gateway", "google/gemini-2.5-flash");
 
@@ -814,8 +814,8 @@ describe("Generate E2E Tests", () => {
 		},
 	);
 
-	describe.skipIf(!process.env.Core_GATEWAY_API_KEY)(
-		"Vercel Core Gateway Provider (anthropic/claude-opus-4.5 via Anthropic Messages)",
+	describe.skipIf(!process.env.AI_GATEWAY_API_KEY)(
+		"Vercel AI Gateway Provider (anthropic/claude-opus-4.5 via Anthropic Messages)",
 		() => {
 			const llm = getModel("vercel-ai-gateway", "anthropic/claude-opus-4.5");
 
@@ -841,8 +841,8 @@ describe("Generate E2E Tests", () => {
 		},
 	);
 
-	describe.skipIf(!process.env.Core_GATEWAY_API_KEY)(
-		"Vercel Core Gateway Provider (openai/gpt-5.1-codex-max via Anthropic Messages)",
+	describe.skipIf(!process.env.AI_GATEWAY_API_KEY)(
+		"Vercel AI Gateway Provider (openai/gpt-5.1-codex-max via Anthropic Messages)",
 		() => {
 			const llm = getModel("vercel-ai-gateway", "openai/gpt-5.1-codex-max");
 
@@ -868,7 +868,7 @@ describe("Generate E2E Tests", () => {
 		},
 	);
 
-	describe.skipIf(!process.env.ZCore_API_KEY)("zCore Provider (glm-5.1 via OpenAI Completions)", () => {
+	describe.skipIf(!process.env.ZAI_API_KEY)("zAI Provider (glm-5.1 via OpenAI Completions)", () => {
 		const llm = getModel("zai", "glm-5.1");
 
 		it("should complete basic text generation", { retry: 3 }, async () => {

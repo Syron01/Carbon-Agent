@@ -24,7 +24,7 @@ function shortModel(model: string): string {
 }
 
 function MessageItemInner({ message, prevModel }: Props) {
-  const { deleteMessage, togglePin } = useApp();
+  const { deleteMessage, togglePin, editMessage } = useApp();
   const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
   const displayText = toText(message.content, message.text);
@@ -66,7 +66,12 @@ function MessageItemInner({ message, prevModel }: Props) {
             <textarea value={editText} onChange={e => setEditText(e.target.value)}
               className="input text-sm min-h-[80px]" autoFocus />
             <div className={cn('flex gap-2', isUser && 'justify-end')}>
-              <button onClick={() => setEditing(false)} className="btn btn-primary btn-sm">Save</button>
+              <button
+                onClick={() => { editMessage(message.id, editText); setEditing(false); }}
+                disabled={!editText.trim() || editText === displayText}
+                className="btn btn-primary btn-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                Save
+              </button>
               <button onClick={() => setEditing(false)} className="btn btn-secondary btn-sm">Cancel</button>
             </div>
           </div>

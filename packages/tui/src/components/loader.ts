@@ -52,6 +52,12 @@ export class Loader extends Text {
 		}
 	}
 
+	/** Stop the animation timer when the component is discarded. */
+	dispose(): void {
+		this.stop();
+		this.ui = null;
+	}
+
 	setMessage(message: string): void {
 		this.message = message;
 		this.updateDisplay();

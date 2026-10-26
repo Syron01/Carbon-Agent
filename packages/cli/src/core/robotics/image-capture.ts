@@ -3,8 +3,11 @@
  */
 
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { createRequire } from "node:module";
 import { extname, resolve } from "node:path";
+
+const require = createRequire(import.meta.url);
 
 const SUPPORTED_FORMATS = new Set([".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"]);
 
@@ -71,7 +74,6 @@ export class ImageCapture {
 		const buf = readFileSync(tmpPath);
 		// Delete temp file
 		try {
-			const { unlinkSync } = require("node:fs");
 			unlinkSync(tmpPath);
 		} catch {
 			// Ignore errors during cleanup

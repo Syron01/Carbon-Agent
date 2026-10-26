@@ -376,7 +376,7 @@ export const ENV_SESSION_DIR = `CARBON_CODING_AGENT_SESSION_DIR`;
 
 export function expandTildePath(path: string): string {
 	if (path === "~") return homedir();
-	if (path.startsWith("~/")) return homedir() + path.slice(1);
+	if (path.startsWith("~/") || path.startsWith("~\\")) return homedir() + path.slice(1);
 	return path;
 }
 

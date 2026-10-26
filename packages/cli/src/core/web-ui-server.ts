@@ -4,13 +4,14 @@ import {
 	mkdirSync,
 	readdirSync,
 	readFileSync,
+	renameSync,
 	rmSync,
 	statSync,
 	writeFileSync,
 } from "node:fs";
 import { createServer, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { dirname, extname, join, resolve } from "node:path";
+import { basename, dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getEngineDir, getSessionsDir } from "../config.js";
 import { log } from "./logger.js";
@@ -1715,6 +1716,13 @@ const MIME: Record<string, string> = {
 	".ico": "image/x-icon",
 };
 
+/** Write to `${file}.tmp` then rename for an atomic same-volume replace. */
+function writeAtomic(file: string, content: string): void {
+	const tmp = `${file}.tmp`;
+	writeFileSync(tmp, content, "utf-8");
+	renameSync(tmp, file);
+}
+
 function readJsonl(file: string): any[] {
 	return readFileSync(file, "utf-8")
 		.split(/\r?\n/)
@@ -2341,32 +2349,35 @@ const BRAIN_PANEL_HTML = `<!doctype html>
 </html>`;
 
 export function startWebUiServer(options: { port?: number; staticRoot?: string } = {}) {
-	const requestedPort = options.port ?? Number(process.env.ASTRO_WEB_PORT || 3131);
-	const server = createServer((req, res) => {
-		const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+		const requestedPort = options.port ?? Number(process.env.ASTRO_WEB_PORT || 3131);
+		// Exact-match origins only: requests without an Origin header (same-origin
+		// fetch, curl, server-to-server forwarding) are always allowed.
+		const allowedOrigins = new Set([
+			`http://localhost:${requestedPort}`,
+			`http://127.0.0.1:${requestedPort}`,
+		]);
+		const server = createServer((req, res) => {
+			const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
 
-		const origin = req.headers.origin || "";
-		const host = req.headers.host || "";
-		// Prevent CSRF from malicious websites by enforcing localhost origin/host
-		if (
-			(origin && !origin.includes("localhost") && !origin.includes("127.0.0.1") && !origin.startsWith("file://")) ||
-			(host && !host.includes("localhost") && !host.includes("127.0.0.1"))
-		) {
-			res.writeHead(403);
-			res.end("Forbidden");
-			return;
-		}
+			const origin = req.headers.origin || "";
+			const host = req.headers.host || "";
+			// Prevent CSRF from malicious websites by enforcing exact localhost origin/host
+			if ((origin && !allowedOrigins.has(origin)) || (host && !allowedOrigins.has(`http://${host}`))) {
+				res.writeHead(403);
+				res.end("Forbidden");
+				return;
+			}
 
-		// Allow CORS preflight requests only for safe origins
-		if (req.method === "OPTIONS") {
-			res.writeHead(200, {
-				"Access-Control-Allow-Origin": origin || "*",
-				"Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-				"Access-Control-Allow-Headers": "Content-Type",
-			});
-			res.end();
-			return;
-		}
+			// Allow CORS preflight requests only for safe origins (never reflect arbitrary origins)
+			if (req.method === "OPTIONS") {
+				res.writeHead(200, {
+					"Access-Control-Allow-Origin": allowedOrigins.has(origin) ? origin : "*",
+					"Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+					"Access-Control-Allow-Headers": "Content-Type",
+				});
+				res.end();
+				return;
+			}
 
 		if (
 			req.method === "POST" &&
@@ -2392,13 +2403,13 @@ export function startWebUiServer(options: { port?: number; staticRoot?: string }
 
 					res.writeHead(200, {
 						"Content-Type": "application/json",
-						"Access-Control-Allow-Origin": origin || "*",
+						"Access-Control-Allow-Origin": allowedOrigins.has(origin) ? origin : "*",
 					});
 					res.end(JSON.stringify({ ok: true, message: `Action '${actionName}' sent to TUI agent.` }));
 				} catch (err: any) {
 					res.writeHead(400, {
 						"Content-Type": "application/json",
-						"Access-Control-Allow-Origin": origin || "*",
+						"Access-Control-Allow-Origin": allowedOrigins.has(origin) ? origin : "*",
 					});
 					res.end(JSON.stringify({ ok: false, error: err.message }));
 				}
@@ -2508,8 +2519,10 @@ export function startWebUiServer(options: { port?: number; staticRoot?: string }
 						return json(res, { ok: true });
 					}
 					if (data?.action === "save") {
-						writeFileSync(files.memorySignals, `${JSON.stringify(data.memorySignals || [], null, 2)}\n`, "utf-8");
-						writeFileSync(files.learning, `${JSON.stringify(data.learning || [], null, 2)}\n`, "utf-8");
+						// Atomic write (tmp + rename on the same volume) so we never clobber
+						// a file the agent is writing mid-save.
+						writeAtomic(files.memorySignals, `${JSON.stringify(data.memorySignals || [], null, 2)}\n`);
+						writeAtomic(files.learning, `${JSON.stringify(data.learning || [], null, 2)}\n`);
 						return json(res, { ok: true });
 					}
 					return json(res, { ok: false, error: "Unknown brain action." });
@@ -2570,7 +2583,12 @@ export function startWebUiServer(options: { port?: number; staticRoot?: string }
 		}
 		if (url.pathname.startsWith("/api/session/")) {
 			const id = decodeURIComponent(url.pathname.replace("/api/session/", ""));
-			const file = listSessionFiles().find((f) => f.includes(id));
+			// Match on the file's basename (format: `<timestamp>_<sessionId>.jsonl`)
+			// instead of a substring of the full path to avoid resolving the wrong session.
+			const file = listSessionFiles().find((f) => {
+				const base = basename(f);
+				return base === `${id}.jsonl` || base.endsWith(`_${id}.jsonl`);
+			});
 			if (!file) {
 				res.writeHead(404);
 				res.end("not found");

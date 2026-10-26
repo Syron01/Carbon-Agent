@@ -79,13 +79,13 @@ const PROVIDER_MODEL_PCoreRS: ProviderModelPair[] = [
 		model: "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
 		label: "bedrock-claude-sonnet-4-5",
 	},
-	// xCore
+	// xAI
 	{ provider: "xai", model: "grok-code-fast-1", label: "xai-grok-code-fast-1" },
 	// Cerebras
 	{ provider: "cerebras", model: "zai-glm-4.7", label: "cerebras-zai-glm-4.7" },
-	// Cloudflare Workers Core
+	// Cloudflare Workers AI
 	{ provider: "cloudflare-workers-ai", model: "@cf/moonshotai/kimi-k2.6", label: "cloudflare-kimi-k2.6" },
-	// Cloudflare Core Gateway
+	// Cloudflare AI Gateway
 	{
 		provider: "cloudflare-ai-gateway",
 		model: "workers-ai/@cf/moonshotai/kimi-k2.6",

@@ -6,6 +6,7 @@ import {
 	auditManager,
 	type Context,
 	type Model,
+	getModel,
 	type SimpleStreamOptions,
 	type StreamFunction,
 	streamSimple,
@@ -75,25 +76,39 @@ export class SwarmManager extends EventEmitter {
 
 		const provider = this.defaultModel.provider;
 
-		if (provider === "google-antigravity" || provider === "antigravity") {
-			if (highIntelligenceRoles.includes(role)) {
-				return { provider: "google-antigravity", name: "gemini-4-argon" } as Model<Api>;
-			}
-			return { provider: "google-antigravity", name: "gemini-3.8-flash-high" } as Model<Api>;
-		}
-
 		if (provider === "google-vertex" || provider === "vercel-ai-gateway" || provider === "openrouter") {
 			return this.defaultModel;
 		}
 
-		if (highIntelligenceRoles.includes(role)) {
+		// Build a real Model record from the registry so streamSimple gets a valid api/id.
+		let wanted: { provider: string; name: string } | undefined;
+		if (provider === "google-antigravity" || provider === "antigravity") {
+			wanted = highIntelligenceRoles.includes(role)
+				? { provider: "google-antigravity", name: "gemini-4-argon" }
+				: { provider: "google-antigravity", name: "gemini-3.8-flash-high" };
+		} else if (highIntelligenceRoles.includes(role)) {
 			// NASA Grade: Use high-reasoning models (Claude 3.5 Sonnet / GPT-4o)
-			return { provider: "anthropic", name: "claude-3-5-sonnet-latest" } as Model<Api>;
+			wanted = { provider: "anthropic", name: "claude-3-5-sonnet-latest" };
+		} else {
+			// Google/Microsoft Grade: Use fast, high-throughput models (Gemini Flash / GPT-4o-mini)
+			wanted = { provider: "google", name: "gemini-1.5-flash-latest" };
 		}
 
-		// Google/Microsoft Grade: Use fast, high-throughput models (Gemini Flash / GPT-4o-mini)
-		return { provider: "google", name: "gemini-1.5-flash-latest" } as Model<Api>;
+		const resolved = getModel(wanted.provider, wanted.name);
+		if (resolved) {
+			return resolved as Model<Api>;
+		}
+
+		if (!this.warnedIncompleteModel) {
+			this.warnedIncompleteModel = true;
+			console.warn(
+				`[Swarm] Model ${wanted.provider}/${wanted.name} not found in registry; falling back to incomplete model record.`,
+			);
+		}
+		return { ...wanted, id: wanted.name } as unknown as Model<Api>;
 	}
+
+	private warnedIncompleteModel = false;
 
 	/**
 	 * Musk-Grade Semantic Context Compaction.

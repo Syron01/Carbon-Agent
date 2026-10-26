@@ -249,10 +249,10 @@ describe("totalTokens field", () => {
 	});
 
 	// =========================================================================
-	// xCore
+	// xAI
 	// =========================================================================
 
-	describe.skipIf(!process.env.XCore_API_KEY)("xCore", () => {
+	describe.skipIf(!process.env.XAI_API_KEY)("xAI", () => {
 		it(
 			"grok-3-fast - should return totalTokens equal to sum of components",
 			{
@@ -262,8 +262,8 @@ describe("totalTokens field", () => {
 			async () => {
 				const llm = getModel("xai", "grok-3-fast");
 
-				console.log(`\nxCore / ${llm.id}:`);
-				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: process.env.XCore_API_KEY });
+				console.log(`\nxAI / ${llm.id}:`);
+				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: process.env.XAI_API_KEY });
 
 				logUsage("First request", first);
 				logUsage("Second request", second);
@@ -327,10 +327,10 @@ describe("totalTokens field", () => {
 	});
 
 	// =========================================================================
-	// Cloudflare Workers Core
+	// Cloudflare Workers AI
 	// =========================================================================
 
-	describe.skipIf(!hasCloudflareWorkersCoreCredentials())("Cloudflare Workers Core", () => {
+	describe.skipIf(!hasCloudflareWorkersCoreCredentials())("Cloudflare Workers AI", () => {
 		it(
 			"@cf/moonshotai/kimi-k2.6 - should return totalTokens equal to sum of components",
 			{
@@ -340,7 +340,7 @@ describe("totalTokens field", () => {
 			async () => {
 				const llm = getModel("cloudflare-workers-ai", "@cf/moonshotai/kimi-k2.6");
 
-				console.log(`\nCloudflare Workers Core / ${llm.id}:`);
+				console.log(`\nCloudflare Workers AI / ${llm.id}:`);
 				const { first, second } = await testTotalTokensWithCache(llm, {
 					apiKey: process.env.CLOUDFLARE_API_KEY,
 				});
@@ -355,10 +355,10 @@ describe("totalTokens field", () => {
 	});
 
 	// =========================================================================
-	// Cloudflare Core Gateway
+	// Cloudflare AI Gateway
 	// =========================================================================
 
-	describe.skipIf(!hasCloudflareAiGatewayCredentials())("Cloudflare Core Gateway", () => {
+	describe.skipIf(!hasCloudflareAiGatewayCredentials())("Cloudflare AI Gateway", () => {
 		it(
 			"workers-ai/@cf/moonshotai/kimi-k2.6 - should return totalTokens equal to sum of components",
 			{
@@ -368,7 +368,7 @@ describe("totalTokens field", () => {
 			async () => {
 				const llm = getModel("cloudflare-ai-gateway", "workers-ai/@cf/moonshotai/kimi-k2.6");
 
-				console.log(`\nCloudflare Core Gateway / ${llm.id}:`);
+				console.log(`\nCloudflare AI Gateway / ${llm.id}:`);
 				const { first, second } = await testTotalTokensWithCache(llm, {
 					apiKey: process.env.CLOUDFLARE_API_KEY,
 				});
@@ -405,7 +405,7 @@ describe("totalTokens field", () => {
 	// z.ai
 	// =========================================================================
 
-	describe.skipIf(!process.env.ZCore_API_KEY)("z.ai", () => {
+	describe.skipIf(!process.env.ZAI_API_KEY)("z.ai", () => {
 		it(
 			"glm-4.5-air - should return totalTokens equal to sum of components",
 			{
@@ -416,7 +416,7 @@ describe("totalTokens field", () => {
 				const llm = getModel("zai", "glm-4.5-air");
 
 				console.log(`\nz.ai / ${llm.id}:`);
-				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: process.env.ZCore_API_KEY });
+				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: process.env.ZAI_API_KEY });
 
 				logUsage("First request", first);
 				logUsage("Second request", second);
@@ -616,10 +616,10 @@ describe("totalTokens field", () => {
 	});
 
 	// =========================================================================
-	// Vercel Core Gateway
+	// Vercel AI Gateway
 	// =========================================================================
 
-	describe.skipIf(!process.env.Core_GATEWAY_API_KEY)("Vercel Core Gateway", () => {
+	describe.skipIf(!process.env.AI_GATEWAY_API_KEY)("Vercel AI Gateway", () => {
 		it(
 			"google/gemini-2.5-flash - should return totalTokens equal to sum of components",
 			{
@@ -629,8 +629,8 @@ describe("totalTokens field", () => {
 			async () => {
 				const llm = getModel("vercel-ai-gateway", "google/gemini-2.5-flash");
 
-				console.log(`\nVercel Core Gateway / ${llm.id}:`);
-				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: process.env.Core_GATEWAY_API_KEY });
+				console.log(`\nVercel AI Gateway / ${llm.id}:`);
+				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: process.env.AI_GATEWAY_API_KEY });
 
 				logUsage("First request", first);
 				logUsage("Second request", second);

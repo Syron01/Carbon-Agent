@@ -1,0 +1,39 @@
+PlanTreni
+Amaç: Carbon Agent (astro) — terminal + web studyo CLI'ı; bu turda tüm repo denetlenip kırıklar düzeltilir, hız ve kullanılabilirlik artırılır.
+
+Değer: Kullanıcıya tek komutla (`astro`) çalışan, hızlı, sağlam bir yerel AI agent studyo'su sağlar.
+
+Tarama modeli: Cloudflare security-audit-skill yaklaşımı → keşif → paralel av (sub agents) → doğrulama (build+test) → düzeltme.
+
+Dosya haritası:
+packages/core (model catalog, providers, oauth) → engine, cli
+packages/engine (engine loop, tools exec, swarm, mcp) → cli
+packages/tui (terminal UI) → cli interactive
+packages/cli/src/core (engine-session, web-ui-server:3131, browser-bridge:3133, tools) → modes
+packages/cli/src/modes (studio:3135, interactive, print, rpc, headless) → ui
+packages/cli/ui (React+Vite web studio) → dist/ui → studio-mode
+packages/cli/browser-extension/chrome → bridge:3133-3142
+
+Ajan sahipliği (av fazı, salt okunur — bitti):
+[x] agent-core → packages/core (15 bulgu: gitlab require, env adları Core'a dönmüş, memory db require ölü, cli.ts boş döngüler, codex ws)
+[x] agent-engine → engine+tui (15 bulgu: MCP spawn şekli + error handler, dangling tool_use, swarm ölü, memory-middleware no-op, undo-stack)
+[x] agent-clicore → cli/src/core (13 bulgu: CSRF origin substring, edit abort askıda, bridge auth yok, sharp require)
+[x] agent-ui → cli/ui (18 bulgu: SSE reconnect yok, clear_chat deadlock, error banner yok, edit kaydet no-op, ek dosyalar gitmiyor)
+[x] agent-modes → modes+cli+utils (15 bulgu: main.ts CONFIG_DIR_NAME import yok CRITICAL, session \n bozuk, migrations boş döngü, headless TTY hang)
+
+Düzeltme sahipliği (fix fazı — hepsi bitti):
+[x] fix-core → packages/core (10 kod düzeltmesi + gitlab-duo lazy import + 8 bayat test dosyası güncellendi)
+[x] fix-engine → packages/engine + packages/tui (12 düzeltme: MCP crash, dangling tool_use x2, swarm, memory-middleware, undo-stack cap...)
+[x] fix-clicore → packages/cli/src/core (10 düzeltme: CSRF exact-match, edit abort reject, bridge token auth + ping/prune, atomic write)
+[x] fix-ui → packages/cli/ui (14 düzeltme: SSE reconnect, error banner, edit save, images/customization threading, leak'ler)
+[x] fix-modes → modes/main/config/migrations/cli/utils (13 düzeltme: CONFIG_DIR_NAME import, session \n, headless TTY, SPA fallback...)
+
+Doğrulama:
+[x] npm run build — tüm monorepo geçti (core 0 hata, UI vite build 331.69 kB)
+[x] core test: 21 başarısız → 0 başarısız (204 geçti)
+[x] engine test 43/43, tui 567/567
+[x] cli: 1003 geçti / 132 başarısız — stash-baseline karşılaştırması: etkilenen subset'te öncesi=sonrası=19 başarısız → regresyon yok, hepsi önceden var olan borç (marka rename'i sonrası bayat testler)
+[ ] cli test borcu (132 bayat test) ayrı bir temizlik turu istiyor
+
+! repo büyük (735 dosya) — düzeltmeler en yüksek etkili olanlara göre sıralanacak
+? Cloudflare security-audit-skill: yaklaşım olarak uygulandı; skill olarak eklenmesi ayrı istek

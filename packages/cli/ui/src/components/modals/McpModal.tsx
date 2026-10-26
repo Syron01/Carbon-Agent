@@ -88,8 +88,8 @@ export function McpModal({ open, onClose }: Props) {
                       <button onClick={() => handleAction('connect', { name: s.name })}
                         className="btn btn-ghost btn-sm text-2xs">Connect</button>
                     ) : (
-                      <button onClick={() => handleAction('disconnect', { name: s.name })}
-                        className="btn btn-ghost btn-sm text-2xs">Disconnect</button>
+                      <button disabled title="This server does not support disconnecting from the UI yet."
+                        className="btn btn-ghost btn-sm text-2xs disabled:opacity-40 disabled:cursor-not-allowed">Disconnect</button>
                     )}
                     <button onClick={() => handleAction('remove', { name: s.name })}
                       className="btn btn-ghost btn-icon text-fg-danger">

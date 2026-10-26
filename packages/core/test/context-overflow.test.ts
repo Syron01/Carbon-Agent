@@ -258,14 +258,14 @@ describe("Context overflow error handling", () => {
 	});
 
 	// =============================================================================
-	// xCore
+	// xAI
 	// Expected pattern: "maximum prompt length is X but the request contains Y"
 	// =============================================================================
 
-	describe.skipIf(!process.env.XCore_API_KEY)("xCore", () => {
+	describe.skipIf(!process.env.XAI_API_KEY)("xAI", () => {
 		it("grok-3-fast - should detect overflow via isContextOverflow", async () => {
 			const model = getModel("xai", "grok-3-fast");
-			const result = await testContextOverflow(model, process.env.XCore_API_KEY!);
+			const result = await testContextOverflow(model, process.env.XAI_API_KEY!);
 			logResult(result);
 
 			expect(result.stopReason).toBe("error");
@@ -331,10 +331,10 @@ describe("Context overflow error handling", () => {
 	// or may rate limit instead
 	// =============================================================================
 
-	describe.skipIf(!process.env.ZCore_API_KEY)("z.ai", () => {
+	describe.skipIf(!process.env.ZAI_API_KEY)("z.ai", () => {
 		it("glm-4.5-air - should detect overflow via isContextOverflow when z.ai reports it", async () => {
 			const model = getModel("zai", "glm-4.5-air");
-			const result = await testContextOverflow(model, process.env.ZCore_API_KEY!);
+			const result = await testContextOverflow(model, process.env.ZAI_API_KEY!);
 			logResult(result);
 
 			// z.ai behavior is inconsistent:
@@ -460,13 +460,13 @@ describe("Context overflow error handling", () => {
 	});
 
 	// =============================================================================
-	// Vercel Core Gateway - Unified API for multiple providers
+	// Vercel AI Gateway - Unified API for multiple providers
 	// =============================================================================
 
-	describe.skipIf(!process.env.Core_GATEWAY_API_KEY)("Vercel Core Gateway", () => {
-		it("google/gemini-2.5-flash via Core Gateway - should detect overflow via isContextOverflow", async () => {
+	describe.skipIf(!process.env.AI_GATEWAY_API_KEY)("Vercel AI Gateway", () => {
+		it("google/gemini-2.5-flash via AI Gateway - should detect overflow via isContextOverflow", async () => {
 			const model = getModel("vercel-ai-gateway", "google/gemini-2.5-flash");
-			const result = await testContextOverflow(model, process.env.Core_GATEWAY_API_KEY!);
+			const result = await testContextOverflow(model, process.env.AI_GATEWAY_API_KEY!);
 			logResult(result);
 
 			expect(result.stopReason).toBe("error");

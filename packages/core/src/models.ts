@@ -47,19 +47,8 @@ async function getLocalLMStudioModels(): Promise<string[]> {
 	return [];
 }
 
-// Inject Cloud & Local Ollama + LM Studio models dynamically
-// Use top-level await to initialize local models eagerly
-const localInitResult = await Promise.allSettled([getLocalOllamaModels(), getLocalLMStudioModels()]);
-const [ollamaModels, lmStudioModels] = [
-	localInitResult[0].status === "fulfilled" ? localInitResult[0].value : [],
-	localInitResult[1].status === "fulfilled" ? localInitResult[1].value : [],
-];
-
-// Ollama
-const ollamaMap = new Map<string, Model<Api>>();
-const allOllamaIds = ["gemma4:31b-cloud", "nemotron-3-super:cloud", "minimax-m3:cloud", ...ollamaModels];
-for (const id of new Set(allOllamaIds)) {
-	ollamaMap.set(id, {
+function makeLocalOllamaModel(id: string): Model<Api> {
+	return {
 		id,
 		name: id,
 		api: "openai-completions",
@@ -70,41 +59,66 @@ for (const id of new Set(allOllamaIds)) {
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 		contextWindow: 128000,
 		maxTokens: 16384,
-	} as Model<Api>);
+	} as Model<Api>;
 }
-modelRegistry.set("ollama", ollamaMap);
 
-// LM Studio — always register provider with at least one entry
-const lmStudioMap = new Map<string, Model<Api>>();
-if (lmStudioModels.length > 0) {
-	for (const id of lmStudioModels) {
-		lmStudioMap.set(id, {
-			id,
-			name: id,
-			api: "openai-completions",
-			provider: "lmstudio",
-			baseUrl: "http://localhost:1234/v1",
-			input: ["text"],
-			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-			contextWindow: 128000,
-			maxTokens: 16384,
-		} as Model<Api>);
-	}
-} else {
-	// Placeholder so provider always shows up
-	lmStudioMap.set("lmstudio:default", {
-		id: "lmstudio:default",
-		name: "Start LM Studio to see models",
+function makeLocalLMStudioModel(id: string): Model<Api> {
+	return {
+		id,
+		name: id,
 		api: "openai-completions",
 		provider: "lmstudio",
 		baseUrl: "http://localhost:1234/v1",
 		input: ["text"],
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-		contextWindow: 0,
-		maxTokens: 0,
-	} as Model<Api>);
+		contextWindow: 128000,
+		maxTokens: 16384,
+	} as Model<Api>;
 }
+
+// Ollama
+const ollamaMap = new Map<string, Model<Api>>();
+const cloudOllamaIds = ["gemma4:31b-cloud", "nemotron-3-super:cloud", "minimax-m3:cloud"];
+for (const id of cloudOllamaIds) {
+	ollamaMap.set(id, makeLocalOllamaModel(id));
+}
+modelRegistry.set("ollama", ollamaMap);
+
+// LM Studio — always register provider with at least one entry
+const lmStudioMap = new Map<string, Model<Api>>();
+// Placeholder so provider always shows up
+lmStudioMap.set("lmstudio:default", {
+	id: "lmstudio:default",
+	name: "Start LM Studio to see models",
+	api: "openai-completions",
+	provider: "lmstudio",
+	baseUrl: "http://localhost:1234/v1",
+	input: ["text"],
+	cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+	contextWindow: 0,
+	maxTokens: 0,
+} as Model<Api>);
 modelRegistry.set("lmstudio", lmStudioMap);
+
+// Probe local Ollama + LM Studio in the background — never block module load.
+// Results are merged into the registry in place when the probes settle.
+void Promise.allSettled([getLocalOllamaModels(), getLocalLMStudioModels()]).then(
+	([ollamaResult, lmStudioResult]) => {
+		const ollamaModels = ollamaResult.status === "fulfilled" ? ollamaResult.value : [];
+		const lmStudioModels = lmStudioResult.status === "fulfilled" ? lmStudioResult.value : [];
+
+		for (const id of ollamaModels) {
+			if (!ollamaMap.has(id)) ollamaMap.set(id, makeLocalOllamaModel(id));
+		}
+
+		if (lmStudioModels.length > 0) {
+			lmStudioMap.delete("lmstudio:default");
+			for (const id of lmStudioModels) {
+				if (!lmStudioMap.has(id)) lmStudioMap.set(id, makeLocalLMStudioModel(id));
+			}
+		}
+	},
+);
 
 // Inject GitLab Duo models dynamically
 const gitlabDuoModelsMap = new Map<string, Model<Api>>();

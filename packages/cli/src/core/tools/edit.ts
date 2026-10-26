@@ -1,7 +1,8 @@
 import type { EngineTool } from "astro-engine";
 import { Box, Container, Spacer, Text } from "astro-tui";
 import { constants } from "fs";
-import { access as fsAccess, readFile as fsReadFile, writeFile as fsWriteFile } from "fs/promises";
+import { access as fsAccess, readFile as fsReadFile } from "fs/promises";
+import { writeFileAtomic } from "./atomic-write.js";
 import { type Static, Type } from "typebox";
 import { renderDiff } from "../../modes/interactive/components/diff.js";
 import type { ToolDefinition } from "../extensions/types.js";
@@ -81,7 +82,7 @@ export interface EditOperations {
 
 const defaultEditOperations: EditOperations = {
 	readFile: (path) => fsReadFile(path),
-	writeFile: (path, content) => fsWriteFile(path, content, "utf-8"),
+	writeFile: (path, content) => writeFileAtomic(path, content),
 	access: (path) => fsAccess(path, constants.R_OK | constants.W_OK),
 };
 
@@ -368,6 +369,8 @@ export function createEditToolDefinition(
 
 								// Check if aborted before reading.
 								if (aborted) {
+									// Always settle the promise, even if onAbort already rejected (no-op).
+									reject(new Error("Edit aborted"));
 									return;
 								}
 
@@ -377,6 +380,8 @@ export function createEditToolDefinition(
 
 								// Check if aborted after reading.
 								if (aborted) {
+									// Always settle the promise, even if onAbort already rejected (no-op).
+									reject(new Error("Edit aborted"));
 									return;
 								}
 
@@ -392,6 +397,8 @@ export function createEditToolDefinition(
 
 								// Check if aborted before writing.
 								if (aborted) {
+									// Always settle the promise, even if onAbort already rejected (no-op).
+									reject(new Error("Edit aborted"));
 									return;
 								}
 
@@ -400,6 +407,8 @@ export function createEditToolDefinition(
 
 								// Check if aborted after writing.
 								if (aborted) {
+									// Always settle the promise, even if onAbort already rejected (no-op).
+									reject(new Error("Edit aborted"));
 									return;
 								}
 

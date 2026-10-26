@@ -36,6 +36,7 @@ export function engineLoop(
 	streamFn?: StreamFn,
 ): EventStream<EngineEvent, EngineMessage[]> {
 	const stream = createEngineStream();
+	const accumulatedMessages: EngineMessage[] = [];
 
 	void runEngineLoop(
 		prompts,
@@ -46,13 +47,15 @@ export function engineLoop(
 		},
 		signal,
 		streamFn,
+		accumulatedMessages,
 	)
 		.then((messages) => {
 			stream.end(messages);
 		})
 		.catch((err) => {
 			console.error("[engine-loop] Fatal error in engineLoop:", err);
-			stream.end([]);
+			// End with the messages the loop already produced instead of discarding them.
+			stream.end(accumulatedMessages);
 		});
 
 	return stream;
@@ -81,6 +84,7 @@ export function engineLoopContinue(
 	}
 
 	const stream = createEngineStream();
+	const accumulatedMessages: EngineMessage[] = [];
 
 	void runEngineLoopContinue(
 		context,
@@ -90,13 +94,15 @@ export function engineLoopContinue(
 		},
 		signal,
 		streamFn,
+		accumulatedMessages,
 	)
 		.then((messages) => {
 			stream.end(messages);
 		})
 		.catch((err) => {
 			console.error("[engine-loop] Fatal error in engineLoopContinue:", err);
-			stream.end([]);
+			// End with the messages the loop already produced instead of discarding them.
+			stream.end(accumulatedMessages);
 		});
 
 	return stream;
@@ -109,8 +115,10 @@ export async function runEngineLoop(
 	emit: EngineEventSink,
 	signal?: AbortSignal,
 	streamFn?: StreamFn,
+	messagesSink?: EngineMessage[],
 ): Promise<EngineMessage[]> {
-	const newMessages: EngineMessage[] = [...prompts];
+	const newMessages: EngineMessage[] = messagesSink ?? [];
+	newMessages.push(...prompts);
 	const currentContext: EngineContext = {
 		...context,
 		messages: [...context.messages, ...prompts],
@@ -133,6 +141,7 @@ export async function runEngineLoopContinue(
 	emit: EngineEventSink,
 	signal?: AbortSignal,
 	streamFn?: StreamFn,
+	messagesSink?: EngineMessage[],
 ): Promise<EngineMessage[]> {
 	if (context.messages.length === 0) {
 		throw new Error("Cannot continue: no messages in context");
@@ -142,7 +151,7 @@ export async function runEngineLoopContinue(
 		throw new Error("Cannot continue from message role: assistant");
 	}
 
-	const newMessages: EngineMessage[] = [];
+	const newMessages: EngineMessage[] = messagesSink ?? [];
 	const currentContext: EngineContext = { ...context };
 
 	await emit({ type: "engine_start" });
@@ -222,17 +231,20 @@ async function runLoop(
 					if (consecutiveRedundantTurns >= MAX_REDUNDANT_TURNS) {
 						const errorMsg =
 							"Loop detected: The agent is repeating the same tool calls without progress. Stopping to save tokens.";
-						const errorResult: ToolResultMessage = {
+						// Answer EVERY tool_use block in the message so the transcript stays valid.
+						const errorResults: ToolResultMessage[] = toolCalls.map((toolCall) => ({
 							role: "toolResult",
-							toolCallId: toolCalls[0]?.id || "unknown",
-							toolName: toolCalls[0]?.name || "unknown",
+							toolCallId: toolCall.id,
+							toolName: toolCall.name,
 							isError: true,
 							timestamp: Date.now(),
 							content: [{ type: "text", text: errorMsg }],
-						};
-						currentContext.messages.push(errorResult);
-						newMessages.push(errorResult);
-						await emit({ type: "turn_end", message, toolResults: [errorResult] });
+						}));
+						for (const errorResult of errorResults) {
+							currentContext.messages.push(errorResult);
+							newMessages.push(errorResult);
+						}
+						await emit({ type: "turn_end", message, toolResults: errorResults });
 						await emit({ type: "engine_end", messages: newMessages });
 						return;
 					}
@@ -425,6 +437,20 @@ async function executeToolCallsSequential(
 
 	for (const toolCall of toolCalls) {
 		if (signal?.aborted) {
+			// Answer remaining tool_use blocks so the transcript stays valid.
+			for (const unexecuted of toolCalls.slice(messages.length)) {
+				const abortedResult: ToolResultMessage = {
+					role: "toolResult",
+					toolCallId: unexecuted.id,
+					toolName: unexecuted.name,
+					isError: true,
+					timestamp: Date.now(),
+					content: [{ type: "text", text: "Tool execution aborted by user" }],
+				};
+				currentContext.messages.push(abortedResult);
+				messages.push(abortedResult);
+				await emitToolResultMessage(abortedResult, emit);
+			}
 			break;
 		}
 		await emit({
@@ -653,16 +679,20 @@ async function executePreparedToolCall(
 		);
 
 		if (signal) {
+			let rejectAbort: (error: Error) => void = () => {};
+			const onAbort = () => rejectAbort(new Error("Tool execution aborted by user"));
 			const abortPromise = new Promise<never>((_, reject) => {
+				rejectAbort = reject;
 				if (signal.aborted) {
 					reject(new Error("Tool execution aborted by user"));
 				} else {
-					signal.addEventListener("abort", () => reject(new Error("Tool execution aborted by user")), {
-						once: true,
-					});
+					signal.addEventListener("abort", onAbort, { once: true });
 				}
 			});
-			executionPromise = Promise.race([executionPromise, abortPromise]);
+			executionPromise = Promise.race([executionPromise, abortPromise]).finally(() => {
+				// Ensure the abort listener never accumulates on long runs.
+				signal.removeEventListener("abort", onAbort);
+			});
 		}
 
 		const result = await executionPromise;

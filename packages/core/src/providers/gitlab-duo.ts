@@ -1,7 +1,5 @@
 import type { Api, AssistantMessageEventStream, Context, Model } from "../types.js";
 import { createAssistantMessageEventStream } from "../utils/event-stream.js";
-import { streamSimpleAnthropic } from "./anthropic.js";
-import { streamSimpleOpenAIResponses } from "./openai-responses.js";
 
 const GITLAB_COM_URL = "https://gitlab.com";
 const DIRECT_ACCESS_TTL = 25 * 60 * 1000;
@@ -57,9 +55,19 @@ export function streamGitLabDuo(model: Model<Api>, context: Context, options?: a
 			const headers = { ...directAccess.headers, Authorization: `Bearer ${directAccess.token}` };
 			const streamOptions = { ...options, apiKey: "gitlab-duo", headers };
 
+			// Lazy-load the delegate provider so importing this module (and the root
+			// barrel) doesn't eagerly pull in the Anthropic/OpenAI SDKs.
 			const innerStream = model.id.includes("claude")
-				? streamSimpleAnthropic(model as Model<"anthropic-messages">, context, streamOptions)
-				: streamSimpleOpenAIResponses(model as Model<"openai-responses">, context, streamOptions);
+				? (await import("./anthropic.js")).streamSimpleAnthropic(
+						model as Model<"anthropic-messages">,
+						context,
+						streamOptions,
+					)
+				: (await import("./openai-responses.js")).streamSimpleOpenAIResponses(
+						model as Model<"openai-responses">,
+						context,
+						streamOptions,
+					);
 
 			for await (const event of innerStream) stream.push(event);
 			stream.end();

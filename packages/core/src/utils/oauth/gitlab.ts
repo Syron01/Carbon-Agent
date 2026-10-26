@@ -3,9 +3,9 @@ import type { Model } from "../../types.js";
 import type { OAuthCredentials, OAuthLoginCallbacks, OAuthProviderInterface } from "./types.js";
 
 const GITLAB_COM_URL = "https://gitlab.com";
-const Core_GATEWAY_URL = "https://cloud.gitlab.com";
-const ANTHROPIC_PROXY_URL = `${Core_GATEWAY_URL}/ai/v1/proxy/anthropic/`;
-const OpenAI_PROXY_URL = `${Core_GATEWAY_URL}/ai/v1/proxy/openai/v1`;
+const DUO_GATEWAY_URL = "https://cloud.gitlab.com";
+const ANTHROPIC_PROXY_URL = `${DUO_GATEWAY_URL}/ai/v1/proxy/anthropic/`;
+const OpenAI_PROXY_URL = `${DUO_GATEWAY_URL}/ai/v1/proxy/openai/v1`;
 
 const BUNDLED_CLIENT_ID = "da4edff2e6ebd2bc3208611e2768bc1c1dd7be791dc5ff26ca34ca9ee44f7d4b";
 const OAUTH_SCOPES = ["api"];
@@ -113,27 +113,34 @@ export async function loginGitLab(callbacks: OAuthLoginCallbacks): Promise<OAuth
 		state: crypto.randomUUID(),
 	});
 
+	const state = authParams.get("state")!;
 	callbacks.onAuth({ url: `${GITLAB_COM_URL}/oauth/authorize?${authParams.toString()}` });
+	const { createServer } = await import("node:http");
 	const code = await new Promise<string>((resolve, reject) => {
-		const httpName = "node:http";
-		const http = require(httpName);
-		const server = http.createServer((req: any, res: any) => {
+		const server = createServer((req: any, res: any) => {
+			let settled = false;
+			const settle = (fn: () => void) => {
+				if (settled) return;
+				settled = true;
+				clearTimeout(timer);
+				server.close();
+				fn();
+			};
 			try {
 				const url = new URL(req.url || "", REDIRECT_URI);
 				if (url.pathname === "/callback") {
 					const code = url.searchParams.get("code");
-					if (code) {
+					const receivedState = url.searchParams.get("state");
+					if (code && receivedState === state) {
 						res.writeHead(200, { "Content-Type": "text/html" });
 						res.end(
 							"<html><body><h1 style='font-family:sans-serif'>Authentication successful!</h1><p style='font-family:sans-serif'>You can close this tab and return to Astro-Agent.</p><script>setTimeout(() => window.close(), 1000)</script></body></html>",
 						);
-						server.close();
-						resolve(code);
+						settle(() => resolve(code));
 					} else {
 						res.writeHead(400, { "Content-Type": "text/plain" });
-						res.end("Missing authorization code.");
-						server.close();
-						reject(new Error("Missing authorization code in callback URL."));
+						res.end(receivedState !== state ? "State mismatch." : "Missing authorization code.");
+						settle(() => reject(new Error("Missing authorization code in callback URL.")));
 					}
 				} else {
 					res.writeHead(404);
@@ -144,10 +151,15 @@ export async function loginGitLab(callbacks: OAuthLoginCallbacks): Promise<OAuth
 			}
 		});
 
+		server.on("error", (err: Error) => {
+			clearTimeout(timer);
+			reject(err);
+		});
+
 		server.listen(8080, "127.0.0.1", () => {});
 
 		// Timeout after 5 minutes
-		setTimeout(
+		const timer = setTimeout(
 			() => {
 				server.close();
 				reject(new Error("Authentication timed out."));

@@ -9,6 +9,7 @@
 import { existsSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
+import { createRequire } from "node:module";
 import { type ImageContent, modelsAreEqual } from "astro-core";
 import { ProcessTerminal, setKeybindings, TUI } from "astro-tui";
 import chalk from "chalk";
@@ -17,7 +18,14 @@ import { processFileArguments } from "./cli/file-processor.js";
 import { buildInitialMessage } from "./cli/initial-message.js";
 import { listModels } from "./cli/list-models.js";
 import { selectSession } from "./cli/session-picker.js";
-import { ENV_SESSION_DIR, expandTildePath, getEngineDir, getSessionsDir, VERSION } from "./config.js";
+import {
+	CONFIG_DIR_NAME,
+	ENV_SESSION_DIR,
+	expandTildePath,
+	getEngineDir,
+	getSessionsDir,
+	VERSION,
+} from "./config.js";
 import { formatNoModelsAvailableMessage } from "./core/auth-guidance.js";
 import { AuthStorage } from "./core/auth-storage.js";
 import { startBrowserBridgeServer } from "./core/browser-bridge-server.js";
@@ -49,6 +57,32 @@ import { initTheme, stopThemeWatcher } from "./modes/interactive/theme/theme.js"
 import { handleConfigCommand, handlePackageCommand } from "./package-manager-cli.js";
 import { printDoctor } from "./utils/doctor.js";
 import { isLocalPath } from "./utils/paths.js";
+
+/**
+ * Resolve the real JS entry file of this CLI for spawning detached daemons.
+ * `process.argv[1]` may be a Windows npm shim (.cmd/.ps1) or a shell wrapper,
+ * which cannot be executed directly by node — so prefer the compiled dist path
+ * derived from this module's own location.
+ */
+function resolveCliEntryPath(): string {
+	// main.ts lives in <pkg>/src and compiles to <pkg>/dist/main.js
+	const here = new URL(".", import.meta.url).pathname;
+	if (here && here.endsWith("/dist/")) {
+		const candidate = new URL("main.js", import.meta.url);
+		return decodeURIComponent(candidate.pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+	}
+	const argv1 = process.argv[1];
+	if (argv1 && /\.(js|mjs|cjs)$/i.test(argv1)) {
+		return resolve(argv1);
+	}
+	try {
+		const require = createRequire(import.meta.url);
+		const pkgJson = require.resolve("carbon-agent-cli/package.json");
+		return resolve(pkgJson, "..", "dist", "main.js");
+	} catch {
+		return resolve(argv1 ?? ".");
+	}
+}
 
 /**
  * Read all content from piped stdin.
@@ -556,7 +590,7 @@ export async function main(args: string[], options?: MainOptions) {
 			}
 
 			const { spawn } = await import("node:child_process");
-			const cliEntry = process.argv[1];
+			const cliEntry = resolveCliEntryPath();
 
 			const isWin = process.platform === "win32";
 			const child = isWin
@@ -591,7 +625,9 @@ export async function main(args: string[], options?: MainOptions) {
 			}
 
 			if (success) {
+				console.log(chalk.green("CarbonAgent Service started."));
 			} else {
+				console.error(chalk.red("Error: CarbonAgent Service failed to start. Check `astro service logs`."));
 			}
 			return;
 		}
@@ -604,7 +640,9 @@ export async function main(args: string[], options?: MainOptions) {
 
 			const stopped = await postToShutdown();
 			if (stopped) {
+				console.log(chalk.green("CarbonAgent Service stopped."));
 			} else {
+				console.error(chalk.red("Error: Failed to stop CarbonAgent Service."));
 			}
 			return;
 		}
@@ -617,7 +655,7 @@ export async function main(args: string[], options?: MainOptions) {
 			}
 
 			const { spawn } = await import("node:child_process");
-			const cliEntry = process.argv[1];
+			const cliEntry = resolveCliEntryPath();
 			const isWin = process.platform === "win32";
 			const child = isWin
 				? spawn(
@@ -651,7 +689,9 @@ export async function main(args: string[], options?: MainOptions) {
 			}
 
 			if (success) {
+				console.log(chalk.green("CarbonAgent Service restarted."));
 			} else {
+				console.error(chalk.red("Error: CarbonAgent Service failed to restart. Check `astro service logs`."));
 			}
 			return;
 		}
@@ -659,17 +699,22 @@ export async function main(args: string[], options?: MainOptions) {
 		if (action === "status") {
 			const runningStatus = await checkRunning();
 			if (runningStatus) {
+				console.log(chalk.green(`CarbonAgent Service is running on port 3133 (Clients: ${runningStatus.clients}).`));
 			} else {
+				console.log(chalk.yellow("CarbonAgent Service is not running."));
 			}
 			return;
 		}
 
 		if (action === "logs") {
 			if (!fs.existsSync(serviceLogPath)) {
+				console.log(chalk.yellow("No service logs found."));
 				return;
 			}
 			const lines = fs.readFileSync(serviceLogPath, "utf-8").split("\n");
-			const _tail = lines.slice(-50).join("\n");
+			const tail = lines.slice(-50).join("\n");
+			console.log(chalk.dim("--- Last 50 log lines ---"));
+			console.log(tail.trim() || "(empty)");
 			return;
 		}
 	}

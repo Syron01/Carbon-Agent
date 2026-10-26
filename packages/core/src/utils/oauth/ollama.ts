@@ -26,11 +26,17 @@ export async function loginOllama(callbacks: OAuthLoginCallbacks): Promise<OAuth
 		onProgress?.("Ollama calismiyor. Baslatiliyor...");
 		try {
 			if (process.platform === "win32") {
-				exec("start ollama");
+				exec("start ollama", (err) => {
+					if (err) onProgress?.(`Ollama baslatilamadi: ${err.message}`);
+				});
 			} else if (process.platform === "darwin") {
-				exec("open -a Ollama");
+				exec("open -a Ollama", (err) => {
+					if (err) onProgress?.(`Ollama baslatilamadi: ${err.message}`);
+				});
 			} else {
-				exec("ollama serve &");
+				exec("ollama serve &", (err) => {
+					if (err) onProgress?.(`Ollama baslatilamadi: ${err.message}`);
+				});
 			}
 
 			for (let i = 0; i < 10; i++) {

@@ -10,6 +10,10 @@ export interface HeadlessOptions {
 }
 
 function readStdin(): Promise<string> {
+	// A TTY never emits "end" — resolve immediately so `astro --headless "task"` doesn't hang.
+	if (process.stdin.isTTY) {
+		return Promise.resolve("");
+	}
 	return new Promise((resolve) => {
 		let data = "";
 		process.stdin.setEncoding("utf8");

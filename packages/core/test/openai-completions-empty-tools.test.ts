@@ -93,10 +93,22 @@ describe("openai-completions empty tools handling", () => {
 		expect("tools" in (params as object)).toBe(false);
 	});
 
-	it("uses conservative OpenAI-compatible fields for Cloudflare Core Gateway /compat models", async () => {
+	it("uses conservative OpenAI-compatible fields for Cloudflare AI Gateway /compat models", async () => {
 		process.env.CLOUDFLARE_ACCOUNT_ID = "account-id";
 		process.env.CLOUDFLARE_GATEWAY_ID = "gateway-id";
-		const model = getModel("cloudflare-ai-gateway", "workers-ai/@cf/moonshotai/kimi-k2.6")!;
+		// workers-ai gateway models are no longer in the generated catalog — build one inline.
+		const model = getModel("cloudflare-ai-gateway", "workers-ai/@cf/moonshotai/kimi-k2.6") ?? ({
+			id: "workers-ai/@cf/moonshotai/kimi-k2.6",
+			name: "Kimi K2.6 (Workers AI)",
+			api: "openai-completions",
+			provider: "cloudflare-ai-gateway",
+			baseUrl: "https://gateway.ai.cloudflare.com/v1/{CLOUDFLARE_ACCOUNT_ID}/{CLOUDFLARE_GATEWAY_ID}/compat",
+			reasoning: true,
+			input: ["text"],
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+			contextWindow: 131072,
+			maxTokens: 16384,
+		} as ReturnType<typeof getModel>);
 
 		await streamSimple(
 			model,
@@ -129,7 +141,7 @@ describe("openai-completions empty tools handling", () => {
 		expect(clientOptions.defaultHeaders?.["cf-aig-authorization"]).toBe("Bearer test");
 	});
 
-	it("preserves inline upstream Authorization for Cloudflare Core Gateway BYOK requests", async () => {
+	it("preserves inline upstream Authorization for Cloudflare AI Gateway BYOK requests", async () => {
 		process.env.CLOUDFLARE_ACCOUNT_ID = "account-id";
 		process.env.CLOUDFLARE_GATEWAY_ID = "gateway-id";
 		const model = getModel("cloudflare-ai-gateway", "gpt-5.1")!;
@@ -147,10 +159,22 @@ describe("openai-completions empty tools handling", () => {
 		expect(clientOptions.defaultHeaders?.["cf-aig-authorization"]).toBe("Bearer cf-token");
 	});
 
-	it("sends session affinity headers for Workers Core through Cloudflare Core Gateway", async () => {
+	it("sends session affinity headers for Workers AI through Cloudflare AI Gateway", async () => {
 		process.env.CLOUDFLARE_ACCOUNT_ID = "account-id";
 		process.env.CLOUDFLARE_GATEWAY_ID = "gateway-id";
-		const workersModel = getModel("cloudflare-ai-gateway", "workers-ai/@cf/moonshotai/kimi-k2.6")!;
+		const workersModel = getModel("cloudflare-ai-gateway", "workers-ai/@cf/moonshotai/kimi-k2.6") ?? ({
+			id: "workers-ai/@cf/moonshotai/kimi-k2.6",
+			name: "Kimi K2.6 (Workers AI)",
+			api: "openai-completions",
+			provider: "cloudflare-ai-gateway",
+			baseUrl: "https://gateway.ai.cloudflare.com/v1/{CLOUDFLARE_ACCOUNT_ID}/{CLOUDFLARE_GATEWAY_ID}/compat",
+			reasoning: true,
+			input: ["text"],
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+			contextWindow: 131072,
+			maxTokens: 16384,
+			compat: { sendSessionAffinityHeaders: true },
+		} as ReturnType<typeof getModel>);
 
 		await streamSimple(
 			workersModel,

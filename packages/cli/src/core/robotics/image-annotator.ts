@@ -3,7 +3,11 @@
  * Uses sharp if available, otherwise falls back to SVG overlay.
  */
 
+import { createRequire } from "node:module";
+
 import type { DetectedObject, TrajectoryPoint } from "./vision-pipeline.js";
+
+const require = createRequire(import.meta.url);
 
 // Define distinct colors for object annotations
 const COLORS = [

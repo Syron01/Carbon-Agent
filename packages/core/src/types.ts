@@ -308,7 +308,7 @@ export interface OpenAICompletionsCompat {
 	thinkingFormat?: "openai" | "openrouter" | "deepseek" | "zai" | "qwen" | "qwen-chat-template";
 	/** OpenRouter-specific routing preferences. Only used when baseUrl points to OpenRouter. */
 	openRouterRouting?: OpenRouterRouting;
-	/** Vercel Core Gateway routing preferences. Only used when baseUrl points to Vercel Core Gateway. */
+	/** Vercel AI Gateway routing preferences. Only used when baseUrl points to Vercel AI Gateway. */
 	vercelGatewayRouting?: VercelGatewayRouting;
 	/** Whether z.ai supports top-level `tool_stream: true` for streaming tool call deltas. Default: false. */
 	zaiToolStream?: boolean;
@@ -420,7 +420,7 @@ export interface OpenRouterRouting {
 }
 
 /**
- * Vercel Core Gateway routing preferences.
+ * Vercel AI Gateway routing preferences.
  * Controls which upstream providers the gateway routes requests to.
  * @see https://vercel.com/docs/ai-gateway/models-and-providers/provider-options
  */

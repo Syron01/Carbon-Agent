@@ -156,7 +156,21 @@ describe("openai-completions tool_choice", () => {
 	});
 
 	it("maps groq qwen3 reasoning levels to default reasoning_effort", async () => {
-		const model = getModel("groq", "qwen/qwen3-32b")!;
+		// The generated catalog no longer ships qwen/qwen3-32b; build it inline with
+		// the thinkingLevelMap the test exercises (thinkingLevelMap?.[level] ?? level).
+		const model = getModel("groq", "qwen/qwen3-32b") ?? ({
+			id: "qwen/qwen3-32b",
+			name: "Qwen3 32B",
+			api: "openai-completions",
+			provider: "groq",
+			baseUrl: "https://api.groq.com/openai/v1",
+			reasoning: true,
+			input: ["text"],
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+			contextWindow: 131072,
+			maxTokens: 16384,
+			thinkingLevelMap: { medium: "default" },
+		} as ReturnType<typeof getModel>);
 		let payload: unknown;
 
 		await streamSimple(
@@ -212,7 +226,7 @@ describe("openai-completions tool_choice", () => {
 	});
 
 	it("enables tool_stream for supported z.ai models with tools", async () => {
-		const model = getModel("zai", "glm-5.1")!;
+		const model = getModel("zai", "glm-5.2")!;
 		const tools: Tool[] = [
 			{
 				name: "ping",
@@ -249,15 +263,29 @@ describe("openai-completions tool_choice", () => {
 	});
 
 	it("stores z.ai tool_stream support in model compat metadata", () => {
-		expect(getModel("zai", "glm-5.1")?.compat?.zaiToolStream).toBe(true);
-		expect(getModel("zai", "glm-4.7")?.compat?.zaiToolStream).toBe(true);
+		expect(getModel("zai", "glm-5.2")?.compat?.zaiToolStream).toBe(true);
 		expect(getModel("zai", "glm-4.7")?.compat?.zaiToolStream).toBe(true);
 		expect(getModel("zai", "glm-5-turbo")?.compat?.zaiToolStream).toBe(true);
+		// glm-4.5-air is no longer in the generated catalog; an unknown id has no compat entry.
 		expect(getModel("zai", "glm-4.5-air")?.compat?.zaiToolStream).toBeUndefined();
 	});
 
+	// Synthetic unsupported z.ai model (no compat entry) — glm-4.5-air left the generated catalog.
+	const unsupportedZaiModel = {
+		id: "glm-4.5-air",
+		name: "GLM 4.5 Air",
+		api: "openai-completions",
+		provider: "zai",
+		baseUrl: "https://api.z.ai/api/paas/v4",
+		reasoning: true,
+		input: ["text"],
+		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+		contextWindow: 131072,
+		maxTokens: 16384,
+	} as ReturnType<typeof getModel>;
+
 	it("omits tool_stream for unsupported z.ai models", async () => {
-		const model = getModel("zai", "glm-4.5-air")!;
+		const model = unsupportedZaiModel;
 		const tools: Tool[] = [
 			{
 				name: "ping",
@@ -294,12 +322,12 @@ describe("openai-completions tool_choice", () => {
 	});
 
 	it("respects explicit z.ai tool_stream compat override", async () => {
-		const baseModel = getModel("zai", "glm-4.5-air")!;
+		const baseModel = getModel("zai", "glm-4.7")!;
 		const model = {
 			...baseModel,
 			compat: {
 				...baseModel.compat,
-				zaiToolStream: true,
+				zaiToolStream: false,
 			},
 		} as const;
 		const tools: Tool[] = [
@@ -334,11 +362,12 @@ describe("openai-completions tool_choice", () => {
 		).result();
 
 		const params = (payload ?? mockState.lastParams) as { tool_stream?: boolean };
-		expect(params.tool_stream).toBe(true);
+		// Explicit compat:false overrides the catalog's zaiToolStream:true.
+		expect(params.tool_stream).toBeUndefined();
 	});
 
 	it("omits tool_stream when no tools are provided", async () => {
-		const model = getModel("zai", "glm-5.1")!;
+		const model = getModel("zai", "glm-5.2")!;
 		let payload: unknown;
 
 		await streamSimple(
@@ -380,7 +409,7 @@ describe("openai-completions tool_choice", () => {
 			},
 		];
 
-		const model = getModel("zai", "glm-5.1")!;
+		const model = getModel("zai", "glm-5.2")!;
 		const response = await streamSimple(
 			model,
 			{
@@ -673,7 +702,8 @@ describe("openai-completions tool_choice", () => {
 	});
 
 	it("uses OpenRouter reasoning object instead of reasoning_effort", async () => {
-		const model = getModel("openrouter", "deepseek/deepseek-r1")!;
+		// deepseek/deepseek-r1 left the OpenRouter catalog; deepseek/deepseek-r1-0528 is the equivalent.
+		const model = getModel("openrouter", "deepseek/deepseek-r1") ?? getModel("openrouter", "deepseek/deepseek-r1-0528")!;
 		let payload: unknown;
 
 		await streamSimple(

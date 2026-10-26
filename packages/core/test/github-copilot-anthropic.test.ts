@@ -92,7 +92,9 @@ describe("Copilot Claude via Anthropic Messages", () => {
 	});
 
 	it("includes interleaved-thinking beta when reasoning is enabled", async () => {
-		const model = getModel("github-copilot", "claude-sonnet-4.6")!;
+		// Adaptive-thinking models (Sonnet 4.6+) intentionally omit the beta header;
+		// use a non-adaptive model to verify it is still sent.
+		const model = getModel("github-copilot", "claude-haiku-4.5")!;
 		if (!model) return; // skip if model not in generated list
 		const { streamAnthropic } = await import("../src/providers/anthropic.js");
 		const s = streamAnthropic(model, context, {

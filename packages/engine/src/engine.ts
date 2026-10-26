@@ -302,8 +302,17 @@ export class Engine {
 		return this.activeRun?.promise ?? Promise.resolve();
 	}
 
-	/** Clear transcript state, runtime state, and queued messages. */
-	reset(): void {
+	/**
+	 * Clear transcript state, runtime state, and queued messages.
+	 *
+	 * If a run is active it is aborted first and the engine waits until idle,
+	 * so the in-flight run cannot keep pushing messages into the fresh transcript.
+	 */
+	async reset(): Promise<void> {
+		if (this.activeRun) {
+			this.activeRun.abortController.abort();
+			await this.waitForIdle();
+		}
 		this._state.messages = [];
 		this._state.isStreaming = false;
 		this._state.streamingMessage = undefined;

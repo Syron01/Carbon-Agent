@@ -106,10 +106,10 @@ function getApiKeyEnvVars(provider: string): readonly string[] | undefined {
 		"google-vertex": "GOOGLE_CLOUD_API_KEY",
 		groq: "GROQ_API_KEY",
 		cerebras: "CEREBRAS_API_KEY",
-		xai: "XCore_API_KEY",
+		xai: "XAI_API_KEY",
 		openrouter: "OPENROUTER_API_KEY",
-		"vercel-ai-gateway": "Core_GATEWAY_API_KEY",
-		zai: "ZCore_API_KEY",
+		"vercel-ai-gateway": "AI_GATEWAY_API_KEY",
+		zai: "ZAI_API_KEY",
 		mistral: "MISTRAL_API_KEY",
 		minimax: "MINIMAX_API_KEY",
 		"minimax-cn": "MINIMAX_CN_API_KEY",
@@ -184,21 +184,21 @@ export function getEnvApiKey(provider: string): string | undefined {
 		// 1. AWS_PROFILE - named profile from ~/.aws/credentials
 		// 2. AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY - standard IAM keys
 		// 3. AWS_BEARER_TOKEN_BEDROCK - Bedrock bearer token
-		// 4. AWS_CONTCoreNER_CREDENTIALS_RELATIVE_URI - ECS task roles
-		// 5. AWS_CONTCoreNER_CREDENTIALS_FULL_URI - ECS task roles (full URI)
+		// 4. AWS_CONTAINER_CREDENTIALS_RELATIVE_URI - ECS task roles
+		// 5. AWS_CONTAINER_CREDENTIALS_FULL_URI - ECS task roles (full URI)
 		// 6. AWS_WEB_IDENTITY_TOKEN_FILE - IRSA (IAM Roles for Service Accounts)
 		if (
 			process.env.AWS_PROFILE ||
 			(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) ||
 			process.env.AWS_BEARER_TOKEN_BEDROCK ||
-			process.env.AWS_CONTCoreNER_CREDENTIALS_RELATIVE_URI ||
-			process.env.AWS_CONTCoreNER_CREDENTIALS_FULL_URI ||
+			process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI ||
+			process.env.AWS_CONTAINER_CREDENTIALS_FULL_URI ||
 			process.env.AWS_WEB_IDENTITY_TOKEN_FILE ||
 			getProcEnv("AWS_PROFILE") ||
 			(getProcEnv("AWS_ACCESS_KEY_ID") && getProcEnv("AWS_SECRET_ACCESS_KEY")) ||
 			getProcEnv("AWS_BEARER_TOKEN_BEDROCK") ||
-			getProcEnv("AWS_CONTCoreNER_CREDENTIALS_RELATIVE_URI") ||
-			getProcEnv("AWS_CONTCoreNER_CREDENTIALS_FULL_URI") ||
+			getProcEnv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI") ||
+			getProcEnv("AWS_CONTAINER_CREDENTIALS_FULL_URI") ||
 			getProcEnv("AWS_WEB_IDENTITY_TOKEN_FILE")
 		) {
 			return "<authenticated>";

@@ -29,7 +29,9 @@ interface AppState {
 }
 
 interface AppActions {
-  sendMessage: (prompt: string) => Promise<void>;
+  sendMessage: (prompt: string, opts?: { images?: string[] }) => Promise<void>;
+  clearError: () => void;
+  setTodos: (todos: TodoItem[]) => void;
   interrupt: () => Promise<void>;
   switchConversation: (id: string) => Promise<void>;
   newConversation: () => Promise<void>;
@@ -212,6 +214,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setMessages([]);
       setStreamingContent('');
       setLiveTools([]);
+      setLoading(false); // /clear never emits engine_end
     },
     subagent_start: (data: any) => {
       setSubAgents(prev => prev.some(a => a.id === data.id)
@@ -252,18 +255,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [activeConversationId]);
 
-  const sendMessage = useCallback(async (prompt: string) => {
+  const sendMessage = useCallback(async (prompt: string, opts?: { images?: string[] }) => {
     try {
       setError(null);
       setMessages(prev => [...prev, { id: `temp-${Date.now()}`, role: 'user', content: prompt, timestamp: Date.now() }]);
       setLiveTools([]);
       setLoading(true);
-      await api.sendMessage(prompt);
+      await api.sendMessage(prompt, {
+        images: opts?.images,
+        aiName: settings.aiName || undefined,
+        extraInstructions: settings.extraInstructions || undefined,
+      });
+      // Quick commands handled server-side without an engine_end event
+      const cmd = prompt.trim().toLowerCase();
+      if (cmd === '/clear' || cmd === '/compact') setLoading(false);
     } catch (e: any) {
       setError(e.message || 'Failed to send message');
       setLoading(false);
     }
-  }, []);
+  }, [settings.aiName, settings.extraInstructions]);
 
   const interrupt = useCallback(async () => {
     try {
@@ -363,6 +373,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), []);
+  const clearError = useCallback(() => setError(null), []);
   const toggleIde = useCallback(() => {
     setIdeOpen(prev => !prev);
     if (!ideOpen && openFiles.length > 0) setIdeTab('preview');
@@ -415,7 +426,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider value={{
       messages, conversations, activeConversationId, status, models, auth, mcp, todos, settings,
       subAgents, liveTools, loading, streamingContent, error, sidebarOpen, activeTab, ideOpen, ideTab, openFiles, activeFilePath, browserToolStatus,
-      sendMessage, interrupt, switchConversation, newConversation, deleteConversation,
+      sendMessage, clearError, setTodos, interrupt, switchConversation, newConversation, deleteConversation,
       renameConversation, deleteMessage, editMessage, togglePin, setModel: setModelAction,
       setThinking: setThinkingAction, logout, refresh, toggleSidebar, toggleIde, setActiveTab,
       setIdeTab, setTheme, refreshStatus, openFile, closeFile, setActiveFile, setPermission,

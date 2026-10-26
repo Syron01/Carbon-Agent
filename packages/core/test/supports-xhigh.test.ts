@@ -33,7 +33,8 @@ describe("getSupportedThinkingLevels", () => {
 	});
 
 	it("includes only high/xhigh plus off for DeepSeek V4 Flash on opencode-go", () => {
-		const model = getModel("opencode-go", "deepseek-v4-flash");
+		// deepseek-v4-flash left the generated catalog; deepseek-v4.1-flash is the successor.
+		const model = getModel("opencode-go", "deepseek-v4-flash") ?? getModel("opencode-go", "deepseek-v4.1-flash");
 		expect(model).toBeDefined();
 		expect(getSupportedThinkingLevels(model!)).toEqual(["off", "high", "xhigh"]);
 	});

@@ -6,10 +6,19 @@
  */
 export class UndoStack<S> {
 	private stack: S[] = [];
+	/** Maximum number of snapshots retained (oldest evicted). */
+	private readonly maxSize: number;
+
+	constructor(maxSize = 100) {
+		this.maxSize = Math.max(1, maxSize);
+	}
 
 	/** Push a deep clone of the given state onto the stack. */
 	push(state: S): void {
 		this.stack.push(structuredClone(state));
+		if (this.stack.length > this.maxSize) {
+			this.stack.shift();
+		}
 	}
 
 	/** Pop and return the most recent snapshot, or undefined if empty. */

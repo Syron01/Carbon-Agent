@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { IconX, IconSearch, IconLock, IconLockOpen } from '@tabler/icons-react';
 import { cn } from '../../lib/utils';
 import { useApp } from '../../context/AppContext';
@@ -53,25 +53,40 @@ export function ModelModal({ open, onClose }: Props) {
     return acc;
   }, {} as Record<string, ModelInfo[]>);
 
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    // Stop any auth-status polling when the modal closes or unmounts
+    return () => {
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    };
+  }, []);
+
   const handleSelect = async (provider: string, modelId: string) => {
     await setModel(provider, modelId);
     onClose();
   };
 
-  const handleLogin = async (provider: string) => {
+  const handleLogin = (provider: string) => {
     window.open(`http://127.0.0.1:3131/login?provider=${provider}`, 'auth', 'width=600,height=700');
-    const check = setInterval(async () => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(async () => {
       try {
         const data = await api.getAuthStatus();
-        if (data?.isLoggedIn) { clearInterval(check); refresh(); }
-      } catch {}
+        if (data?.isLoggedIn) {
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+          refresh();
+        }
+      } catch {
+        if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+      }
     }, 2000);
   };
 
   if (!open) return null;
 
   const renderModelItem = (m: ModelInfo) => (
-    <div key={m.id} onClick={() => handleSelect(m.provider, m.id)}
+    <div key={m.id} onClick={() => { if (!m.authenticated && isCloud(m)) return; handleSelect(m.provider, m.id); }}
       className={cn('model-item', status?.model === m.id && 'selected', !m.authenticated && isCloud(m) && 'opacity-50 cursor-not-allowed')}>
       <div className="model-icon" style={{ background: `${PROVIDER_COLORS[m.provider] || '#555'}20`, color: PROVIDER_COLORS[m.provider] || '#888' }}>
         {PROVIDER_INITIALS[m.provider] || m.provider[0].toUpperCase()}

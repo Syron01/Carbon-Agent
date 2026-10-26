@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { IconX, IconBrain } from '@tabler/icons-react';
 import { cn } from '../../lib/utils';
 import { useApp } from '../../context/AppContext';
@@ -20,6 +20,11 @@ const LEVELS = [
 export function ReasoningModal({ open, onClose }: Props) {
   const { settings, setThinking } = useApp();
   const [selected, setSelected] = useState(settings?.thinkingLevel ?? 1);
+
+  // Keep in sync with server-provided settings that load after mount
+  useEffect(() => {
+    if (!open && settings?.thinkingLevel !== undefined) setSelected(settings.thinkingLevel);
+  }, [open, settings?.thinkingLevel]);
 
   const handleSelect = async (level: number) => {
     setSelected(level);

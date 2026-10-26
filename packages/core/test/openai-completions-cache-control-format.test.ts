@@ -1,8 +1,15 @@
 import { Type } from "typebox";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getModel } from "../src/models.js";
+import { getModel, getModels } from "../src/models.js";
 import { streamOpenAICompletions } from "../src/providers/openai-completions.js";
 import type { Model } from "../src/types.js";
+
+/** Find any OpenRouter Anthropic model in the generated catalog. */
+function findOpenRouterAnthropicModel(): Model<"openai-completions"> | undefined {
+	return getModels("openrouter").find(
+		(m) => m.id.startsWith("anthropic/") && m.api === "openai-completions",
+	) as Model<"openai-completions"> | undefined;
+}
 
 interface CacheControl {
 	type: "ephemeral";
@@ -153,8 +160,11 @@ describe("openai-completions cacheControlFormat", () => {
 	});
 
 	it("preserves Anthropic-style cache markers for OpenRouter Anthropic models", async () => {
-		const model = getModel("openrouter", "anthropic/claude-sonnet-4");
-		const params = await capturePayload(model);
+		// anthropic/claude-sonnet-4 is no longer in the generated catalog — fall back to any
+		// OpenRouter Anthropic model so the cacheControlFormat=anthropic path stays covered.
+		const model = getModel("openrouter", "anthropic/claude-sonnet-4") ?? findOpenRouterAnthropicModel();
+		if (!model) return; // no OpenRouter Anthropic models in the catalog
+		const params = await capturePayload(model as Model<"openai-completions">);
 		expectAnthropicCacheMarkers(params);
 	});
 

@@ -673,6 +673,8 @@ export class SessionManager {
 	private cwd: string;
 	private persist: boolean;
 	private flushed: boolean = false;
+	/** Cached: whether any persisted entry is an assistant message (avoids O(n) rescan per append). */
+	private hasAssistant: boolean = false;
 	private fileEntries: FileEntry[] = [];
 	private byId: Map<string, SessionEntry> = new Map();
 	private labelsById: Map<string, string> = new Map();
@@ -719,6 +721,9 @@ export class SessionManager {
 			}
 
 			this._buildIndex();
+			this.hasAssistant = this.fileEntries.some(
+				(e) => e.type === "message" && e.message.role === "assistant",
+			);
 			this.flushed = true;
 		} else {
 			const explicitPath = this.sessionFile;
@@ -739,6 +744,7 @@ export class SessionManager {
 			parentSession: options?.parentSession,
 		};
 		this.fileEntries = [header];
+		this.hasAssistant = false;
 		this.byId.clear();
 		this.labelsById.clear();
 		this.leafId = null;
@@ -801,8 +807,10 @@ export class SessionManager {
 	_persist(entry: SessionEntry): void {
 		if (!this.persist || !this.sessionFile) return;
 
-		const hasAssistant = this.fileEntries.some((e) => e.type === "message" && e.message.role === "assistant");
-		if (!hasAssistant) {
+		if (entry.type === "message" && entry.message.role === "assistant") {
+			this.hasAssistant = true;
+		}
+		if (!this.hasAssistant) {
 			// Mark as not flushed so when assistant arrives, all entries get written
 			this.flushed = false;
 			return;
@@ -1223,6 +1231,9 @@ export class SessionManager {
 			this.sessionId = newSessionId;
 			this.sessionFile = newSessionFile;
 			this._buildIndex();
+			this.hasAssistant = this.fileEntries.some(
+				(e) => e.type === "message" && e.message.role === "assistant",
+			);
 
 			// Only write the file now if it contains an assistant message.
 			// Otherwise defer to _persist(), which creates the file on the
@@ -1257,6 +1268,7 @@ export class SessionManager {
 		}
 		this.fileEntries = [header, ...pathWithoutLabels, ...labelEntries];
 		this.sessionId = newSessionId;
+		this.hasAssistant = this.fileEntries.some((e) => e.type === "message" && e.message.role === "assistant");
 		this._buildIndex();
 		return undefined;
 	}

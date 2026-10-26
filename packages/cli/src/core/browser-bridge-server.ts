@@ -225,20 +225,7 @@ export function startBrowserBridgeServer(options: { port?: number; keepAlive?: b
 			if (req.url === "/shutdown" && req.method === "POST") {
 				res.writeHead(200, { "Content-Type": "text/plain" });
 				res.end("shutting down");
-				for (const client of clients.values()) {
-					client.socket.destroy();
-				}
-				clients.clear();
-				if (checkInterval) {
-					clearInterval(checkInterval);
-					checkInterval = undefined;
-				}
-				s.close(() => {
-					process.exit(0);
-				});
-				setTimeout(() => {
-					process.exit(0);
-				}, 500);
+				gracefulBridgeShutdown();
 				return;
 			}
 			res.writeHead(404);
@@ -291,6 +278,7 @@ export function startBrowserBridgeServer(options: { port?: number; keepAlive?: b
 			if (!options.keepAlive) {
 				server.unref();
 			}
+			startStalenessMonitoring();
 		});
 	};
 
@@ -681,11 +669,8 @@ function handleClientMessage(client: BrowserBridgeClient, raw: string): void {
 	}
 
 	if (message.type === "hello") {
-		if (!isAuthorized(client, message)) {
-			// Silently reject unauthorized clients to prevent TUI layout breaking
-			client.socket.destroy();
-			return;
-		}
+		// Handshake is unauthenticated by design: the extension cannot know the
+		// per-process session token. Command-bearing messages below require it.
 		client.extensionId = typeof message.extensionId === "string" ? message.extensionId : undefined;
 		client.version = typeof message.version === "string" ? message.version : undefined;
 
@@ -708,9 +693,8 @@ function handleClientMessage(client: BrowserBridgeClient, raw: string): void {
 		if (!isAuthorized(client, message)) {
 			return;
 		}
-		setTimeout(() => {
-			process.exit(0);
-		}, 100);
+		log.info("bridge", "close_session received — shutting down bridge");
+		gracefulBridgeShutdown();
 		return;
 	}
 
@@ -758,18 +742,81 @@ function isAllowedExtensionOrigin(_origin: string | undefined): boolean {
 
 const sessionToken = randomUUID();
 
+/**
+ * Tear down the bridge through the single shutdown path: destroy client
+ * sockets, stop polling, close the server, then exit.
+ */
+function gracefulBridgeShutdown(): void {
+	for (const client of clients.values()) {
+		client.socket.destroy();
+	}
+	clients.clear();
+	if (stalenessInterval) {
+		clearInterval(stalenessInterval);
+		stalenessInterval = undefined;
+	}
+	if (checkInterval) {
+		clearInterval(checkInterval);
+		checkInterval = undefined;
+	}
+	if (server) {
+		server.close(() => process.exit(0));
+		setTimeout(() => process.exit(0), 500);
+	} else {
+		process.exit(0);
+	}
+}
+
+let stalenessInterval: NodeJS.Timeout | undefined;
+
+/**
+ * Ping connected clients every 30s (WebSocket-level ping; pong updates
+ * lastSeen) and drop sockets silent for more than 90s.
+ */
+function startStalenessMonitoring(): void {
+	if (stalenessInterval) clearInterval(stalenessInterval);
+	stalenessInterval = setInterval(() => {
+		const now = Date.now();
+		for (const [id, client] of clients) {
+			if (now - client.lastSeen > 90_000) {
+				log.info("bridge", `Dropping stale bridge client ${client.extensionId || id}`);
+				try {
+					client.socket.destroy();
+				} catch {
+					/* ignore */
+				}
+				clients.delete(id);
+				cancelPendingCommandsForClient(id);
+				continue;
+			}
+			try {
+				client.socket.write(encodeServerFrame(Buffer.alloc(0), 9));
+			} catch {
+				/* send() failure path handles cleanup */
+			}
+		}
+	}, 30_000);
+	if (stalenessInterval.unref) stalenessInterval.unref();
+}
+
 export function getSessionToken(): string {
 	return sessionToken;
 }
 
 /**
- * Validates if the client is authorized using a session token.
+ * Validates that a state-changing client message carries the per-process
+ * session token. The extension handshake ("hello") is intentionally left
+ * unauthenticated (the extension has no way to learn the token); only
+ * command-bearing messages (close_session, knowledge_ingest) require it.
  */
 function isAuthorized(_client: BrowserBridgeClient, message: any): boolean {
-	if (message && message.type === "hello") return true;
-	const token = message.token || message.auth || message.secret;
-	if (token === sessionToken || token === "Astro-Agent_internal_secure_token") return true;
-	return typeof message.extensionId === "string" || typeof _client.extensionId === "string";
+	const token = message?.token || message?.auth || message?.secret;
+	if (token === sessionToken) return true;
+	log.warn(
+		"bridge",
+		`Rejected bridge message without valid session token (type=${String(message?.type ?? "unknown")})`,
+	);
+	return false;
 }
 
 /**

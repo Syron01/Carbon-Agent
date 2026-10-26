@@ -582,7 +582,7 @@ function buildParams(
 		(params as any).provider = model.compat.openRouterRouting;
 	}
 
-	// Vercel Core Gateway provider routing preferences
+	// Vercel AI Gateway provider routing preferences
 	if (model.baseUrl.includes("ai-gateway.vercel.sh") && model.compat?.vercelGatewayRouting) {
 		const routing = model.compat.vercelGatewayRouting;
 		if (routing.only || routing.order) {

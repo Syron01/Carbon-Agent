@@ -306,12 +306,32 @@ export function createBashToolDefinition(
 				const chunks: Buffer[] = [];
 				let chunksBytes = 0;
 				const maxChunksBytes = DEFAULT_MAX_BYTES * 2;
+				const PARTIAL_UPDATE_INTERVAL_MS = 150;
+				let lastPartialUpdateAt = 0;
 
 				const ensureTempFile = () => {
 					if (tempFilePath) return;
 					tempFilePath = getTempFilePath();
 					tempFileStream = createWriteStream(tempFilePath);
 					for (const chunk of chunks) tempFileStream.write(chunk);
+				};
+
+				// Stream partial output using the rolling tail buffer.
+				const sendPartialUpdate = () => {
+					if (!onUpdate || isFinished || signal?.aborted) return;
+					const fullBuffer = Buffer.concat(chunks);
+					const fullText = fullBuffer.toString("utf-8");
+					const truncation = truncateTail(fullText);
+					if (truncation.truncated) {
+						ensureTempFile();
+					}
+					onUpdate({
+						content: [{ type: "text", text: truncation.content || "" }],
+						details: {
+							truncation: truncation.truncated ? truncation : undefined,
+							fullOutputPath: tempFilePath,
+						},
+					});
 				};
 
 				const handleData = (data: Buffer) => {
@@ -330,21 +350,12 @@ export function createBashToolDefinition(
 						const removed = chunks.shift()!;
 						chunksBytes -= removed.length;
 					}
-					// Stream partial output using the rolling tail buffer.
-					if (onUpdate && !isFinished && !signal?.aborted) {
-						const fullBuffer = Buffer.concat(chunks);
-						const fullText = fullBuffer.toString("utf-8");
-						const truncation = truncateTail(fullText);
-						if (truncation.truncated) {
-							ensureTempFile();
-						}
-						onUpdate({
-							content: [{ type: "text", text: truncation.content || "" }],
-							details: {
-								truncation: truncation.truncated ? truncation : undefined,
-								fullOutputPath: tempFilePath,
-							},
-						});
+					// Throttle partial updates (re-truncating every chunk is O(n^2) for
+					// chatty commands); the final result is always exact on completion.
+					const now = Date.now();
+					if (now - lastPartialUpdateAt >= PARTIAL_UPDATE_INTERVAL_MS) {
+						lastPartialUpdateAt = now;
+						sendPartialUpdate();
 					}
 				};
 
@@ -370,6 +381,8 @@ export function createBashToolDefinition(
 					env: spawnContext.env,
 				})
 					.then(({ exitCode }) => {
+						// Send the final partial update immediately (bypasses the throttle).
+						sendPartialUpdate();
 						// Combine the rolling buffer chunks.
 						const fullBuffer = Buffer.concat(chunks);
 						const fullOutput = fullBuffer.toString("utf-8");

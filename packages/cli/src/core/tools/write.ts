@@ -4,7 +4,7 @@ import type { EngineTool } from "astro-engine";
 import { Container, Text } from "astro-tui";
 import { createPatch } from "diff";
 import { existsSync, readFileSync } from "fs";
-import { mkdir as fsMkdir, writeFile as fsWriteFile } from "fs/promises";
+import { mkdir as fsMkdir } from "fs/promises";
 import { dirname } from "path";
 import { type Static, Type } from "typebox";
 import { keyHint } from "../../modes/interactive/components/keybinding-hints.js";
@@ -13,6 +13,7 @@ import type { ToolDefinition, ToolRenderResultOptions } from "../extensions/type
 import { appendAuditEvent } from "../security/audit.js";
 import { evaluateFilePath } from "../security/policy.js";
 import { withFileMutationQueue } from "./file-mutation-queue.js";
+import { writeFileAtomic } from "./atomic-write.js";
 import { resolveToCwd } from "./path-utils.js";
 
 import { invalidArgText, normalizeDisplayText, replaceTabs, shortenPath, str } from "./render-utils.js";
@@ -40,7 +41,7 @@ export interface WriteOperations {
 }
 
 const defaultWriteOperations: WriteOperations = {
-	writeFile: (path, content) => fsWriteFile(path, content, "utf-8"),
+	writeFile: (path, content) => writeFileAtomic(path, content),
 	mkdir: (dir) => fsMkdir(dir, { recursive: true }).then(() => {}),
 };
 

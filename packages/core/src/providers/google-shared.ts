@@ -396,8 +396,10 @@ export function mapStopReason(reason: FinishReason): StopReason {
 		case FinishReason.NO_IMAGE:
 			return "error";
 		default: {
+			// Handle unknown finish reasons gracefully (API may add new values) — don't kill the stream
 			const _exhaustive: never = reason;
-			throw new Error(`Unhandled stop reason: ${_exhaustive}`);
+			console.warn(`[google] Unhandled stop reason: ${String(_exhaustive)}; treating as stop`);
+			return "stop";
 		}
 	}
 }

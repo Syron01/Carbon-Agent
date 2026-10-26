@@ -65,7 +65,7 @@ export function CommandPalette({
       icon: IconMessages,
       run: () => { switchConversation(c.id); onClose(); },
     }));
-    const modelItems: Item[] = models.slice(0, 40).map(m => ({
+    const modelItems: Item[] = models.filter(m => m.authenticated).slice(0, 40).map(m => ({
       id: `model-${m.provider}-${m.id}`,
       label: m.name,
       hint: m.provider,

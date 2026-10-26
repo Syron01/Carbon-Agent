@@ -4,10 +4,10 @@ import { writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import {
-	CLOUDFLARE_Core_GATEWAY_ANTHROPIC_BASE_URL,
-	CLOUDFLARE_Core_GATEWAY_COMPAT_BASE_URL,
-	CLOUDFLARE_Core_GATEWAY_OpenAI_BASE_URL,
-	CLOUDFLARE_WORKERS_Core_BASE_URL,
+	CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL,
+	CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL,
+	CLOUDFLARE_AI_GATEWAY_OpenAI_BASE_URL,
+	CLOUDFLARE_WORKERS_AI_BASE_URL,
 } from "../src/providers/cloudflare.js";
 import {
 	Api,
@@ -69,9 +69,9 @@ const KIMI_STATIC_HEADERS = {
 	"User-Engine": "KimiCLI/1.5",
 } as const;
 
-const Core_GATEWAY_MODELS_URL = "https://ai-gateway.vercel.sh/v1";
-const Core_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh";
-const ZCore_TOOL_STREAM_UNSUPPORTED_MODELS = new Set(["glm-4.5", "glm-4.5-air", "glm-4.5-flash", "glm-4.5v"]);
+const AI_GATEWAY_MODELS_URL = "https://ai-gateway.vercel.sh/v1";
+const AI_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh";
+const ZAI_TOOL_STREAM_UNSUPPORTED_MODELS = new Set(["glm-4.5", "glm-4.5-air", "glm-4.5-flash", "glm-4.5v"]);
 const EAGER_TOOL_INPUT_STREAMING_UNSUPPORTED_ANTHROPIC_MODELS = new Set([
 	"github-copilot:claude-haiku-4.5",
 	"github-copilot:claude-sonnet-4",
@@ -224,7 +224,7 @@ async function fetchOpenRouterModels(): Promise<Model<any>[]> {
 
 async function fetchAiGatewayModels(): Promise<Model<any>[]> {
 	try {
-		const response = await fetch(`${Core_GATEWAY_MODELS_URL}/models`);
+		const response = await fetch(`${AI_GATEWAY_MODELS_URL}/models`);
 		const data = await response.json();
 		const models: Model<any>[] = [];
 
@@ -256,7 +256,7 @@ async function fetchAiGatewayModels(): Promise<Model<any>[]> {
 				id: model.id,
 				name: model.name || model.id,
 				api: "anthropic-messages",
-				baseUrl: Core_GATEWAY_BASE_URL,
+				baseUrl: AI_GATEWAY_BASE_URL,
 				provider: "vercel-ai-gateway",
 				reasoning: tags.includes("reasoning"),
 				input,
@@ -464,7 +464,7 @@ async function loadModelsDevData(): Promise<Model<any>[]> {
 					name: m.name || modelId,
 					api: "openai-completions",
 					provider: "cloudflare-workers-ai",
-					baseUrl: CLOUDFLARE_WORKERS_Core_BASE_URL,
+					baseUrl: CLOUDFLARE_WORKERS_AI_BASE_URL,
 					reasoning: m.reasoning === true,
 					input: m.modalities?.input?.includes("image") ? ["text", "image"] : ["text"],
 					cost: {
@@ -496,15 +496,15 @@ async function loadModelsDevData(): Promise<Model<any>[]> {
 				let id: string;
 				if (upstream === "openai") {
 					api = "openai-responses";
-					baseUrl = CLOUDFLARE_Core_GATEWAY_OpenAI_BASE_URL;
+					baseUrl = CLOUDFLARE_AI_GATEWAY_OpenAI_BASE_URL;
 					id = nativeId;
 				} else if (upstream === "anthropic") {
 					api = "anthropic-messages";
-					baseUrl = CLOUDFLARE_Core_GATEWAY_ANTHROPIC_BASE_URL;
+					baseUrl = CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL;
 					id = nativeId;
 				} else if (upstream === "workers-ai") {
 					api = "openai-completions";
-					baseUrl = CLOUDFLARE_Core_GATEWAY_COMPAT_BASE_URL;
+					baseUrl = CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL;
 					id = prefixedId;
 				} else {
 					continue;
@@ -585,7 +585,7 @@ async function loadModelsDevData(): Promise<Model<any>[]> {
 					compat: {
 						supportsDeveloperRole: false,
 						thinkingFormat: "zai",
-						...(!ZCore_TOOL_STREAM_UNSUPPORTED_MODELS.has(modelId) ? { zaiToolStream: true } : {}),
+						...(!ZAI_TOOL_STREAM_UNSUPPORTED_MODELS.has(modelId) ? { zaiToolStream: true } : {}),
 					},
 					contextWindow: m.limit?.context || 4096,
 					maxTokens: m.limit?.output || 4096,

@@ -196,7 +196,13 @@ export function streamProxy(model: Model<any>, context: Context, options: ProxyS
 					if (line.startsWith("data: ")) {
 						const data = line.slice(6).trim();
 						if (data) {
-							const proxyEvent = JSON.parse(data) as ProxyAssistantMessageEvent;
+							let proxyEvent: ProxyAssistantMessageEvent;
+							try {
+								proxyEvent = JSON.parse(data) as ProxyAssistantMessageEvent;
+							} catch {
+								// Skip malformed SSE lines instead of crashing the stream.
+								continue;
+							}
 							const event = processProxyEvent(proxyEvent, partial);
 							if (event) {
 								(stream as any).push(event);

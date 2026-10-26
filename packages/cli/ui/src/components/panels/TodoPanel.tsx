@@ -5,29 +5,50 @@ import { cn } from '../../lib/utils';
 import { api } from '../../lib/api';
 
 export function TodoPanel() {
-  const { todos, refresh } = useApp();
+  const { todos, setTodos, refresh } = useApp();
   const [newText, setNewText] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const handleAdd = async () => {
     if (!newText.trim()) return;
-    await api.updateTodo('add', { text: newText.trim() as any });
-    setNewText('');
-    refresh();
+    try {
+      const data = await api.updateTodo('add', { text: newText.trim() as any });
+      if (data?.todos) setTodos(data.todos); else refresh();
+      setNewText('');
+    } catch (e: any) {
+      setError(e.message || 'Failed to add task');
+      console.error('updateTodo failed:', e);
+    }
   };
 
   const handleToggle = async (id: string, isDone: boolean) => {
-    await api.updateTodo(isDone ? 'uncheck' : 'check', { id });
-    refresh();
+    try {
+      const data = await api.updateTodo(isDone ? 'uncheck' : 'check', { id });
+      if (data?.todos) setTodos(data.todos); else refresh();
+    } catch (e: any) {
+      setError(e.message || 'Failed to update task');
+      console.error('updateTodo failed:', e);
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await api.updateTodo('remove', { id });
-    refresh();
+    try {
+      const data = await api.updateTodo('remove', { id });
+      if (data?.todos) setTodos(data.todos); else refresh();
+    } catch (e: any) {
+      setError(e.message || 'Failed to remove task');
+      console.error('updateTodo failed:', e);
+    }
   };
 
   const handleClear = async () => {
-    for (const t of todos.filter(t => t.done)) await api.updateTodo('remove', { id: t.id });
-    refresh();
+    try {
+      for (const t of todos.filter(t => t.done)) await api.updateTodo('remove', { id: t.id });
+      refresh();
+    } catch (e: any) {
+      setError(e.message || 'Failed to clear tasks');
+      console.error('updateTodo failed:', e);
+    }
   };
 
   return (
@@ -57,6 +78,12 @@ export function TodoPanel() {
           </button>
         </div>
       </div>
+      {error && (
+        <div className="px-3 py-2 text-2xs text-fg-danger bg-[color-mix(in_srgb,var(--fg-danger)_10%,transparent)] border-b border-border-default flex items-start gap-1.5">
+          <span className="flex-1 break-words">{error}</span>
+          <button onClick={() => setError(null)} className="opacity-70 hover:opacity-100" title="Dismiss">×</button>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto">
         {todos.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-fg-subtle text-sm gap-2">

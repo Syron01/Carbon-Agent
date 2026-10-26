@@ -106,11 +106,17 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 			reject(new Error("Request was aborted"));
 			return;
 		}
-		const timeout = setTimeout(resolve, ms);
-		signal?.addEventListener("abort", () => {
+		const onAbort = () => {
 			clearTimeout(timeout);
+			signal?.removeEventListener("abort", onAbort);
 			reject(new Error("Request was aborted"));
-		});
+		};
+		const timeout = setTimeout(() => {
+			// { once: true } on the listener plus this cleanup avoids leaking per-retry listeners.
+			signal?.removeEventListener("abort", onAbort);
+			resolve();
+		}, ms);
+		signal?.addEventListener("abort", onAbort, { once: true });
 	});
 }
 
@@ -198,7 +204,12 @@ export const streamOpenAICodexResponses: StreamFunction<"openai-codex-responses"
 					if (transport === "websocket" || transport === "websocket-cached") {
 						throw error;
 					}
-					_websocketStarted = false;
+					// WS may have already emitted partial content into the shared output;
+					// reset it so the SSE fallback doesn't duplicate blocks.
+					if (_websocketStarted) {
+						output.content = [];
+						_websocketStarted = false;
+					}
 				}
 			}
 
@@ -648,6 +659,8 @@ function scheduleSessionWebSocketExpiry(sessionId: string, entry: CachedWebSocke
 		closeWebSocketSilently(entry.socket, 1000, "idle_timeout");
 		websocketSessionCache.delete(sessionId);
 	}, SESSION_WEBSOCKET_CACHE_TTL_MS);
+	// Never keep the process alive just for an idle cached socket.
+	entry.idleTimer.unref?.();
 }
 
 async function connectWebSocketAttempt(url: string, headers: Headers, signal?: AbortSignal): Promise<WebSocketLike> {

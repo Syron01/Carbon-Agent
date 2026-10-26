@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { IconCode, IconTestPipe, IconHammer } from '@tabler/icons-react';
+import { IconCode, IconTestPipe, IconHammer, IconX, IconAlertCircle } from '@tabler/icons-react';
 import { MessageItem } from './MessageItem';
 import { MessageInput } from './MessageInput';
 import { useApp } from '../../context/AppContext';
@@ -9,7 +9,7 @@ import { MessageBody } from '../Markdown';
 import { ToolCard } from '../ToolCard';
 
 export function ChatArea() {
-  const { messages, streamingContent, liveTools, sendMessage } = useApp();
+  const { messages, streamingContent, liveTools, sendMessage, error, clearError } = useApp();
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -26,6 +26,15 @@ export function ChatArea() {
 
   return (
     <div className="flex flex-col h-full">
+      {error && (
+        <div className="mx-5 sm:mx-8 mt-3 flex items-start gap-2 px-3 py-2.5 rounded-[var(--radius-md)] bg-[color-mix(in_srgb,var(--fg-danger)_12%,transparent)] border border-[color-mix(in_srgb,var(--fg-danger)_35%,transparent)] text-sm text-[var(--fg-danger)]">
+          <IconAlertCircle size={16} className="shrink-0 mt-0.5" />
+          <span className="flex-1 min-w-0 break-words">{error}</span>
+          <button onClick={clearError} className="shrink-0 opacity-70 hover:opacity-100 transition-opacity" title="Dismiss">
+            <IconX size={15} />
+          </button>
+        </div>
+      )}
       <div ref={listRef} className="flex-1 overflow-y-auto px-5 sm:px-8 pt-6">
         <div className={cn('mx-auto w-full max-w-[44rem]', empty && 'min-h-full flex flex-col justify-center')}>
           {empty ? (

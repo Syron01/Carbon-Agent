@@ -274,8 +274,11 @@ function migrateExtensionSystem(cwd: string): string[] {
 export async function showDeprecationWarnings(warnings: string[]): Promise<void> {
 	if (warnings.length === 0) return;
 
-	for (const _warning of warnings) {
+	for (const warning of warnings) {
+		console.log(chalk.yellow(`Warning: ${warning}`));
 	}
+
+	if (!process.stdin.isTTY) return;
 
 	await new Promise<void>((resolve) => {
 		process.stdin.setRawMode?.(true);

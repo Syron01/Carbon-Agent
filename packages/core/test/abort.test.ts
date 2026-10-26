@@ -250,7 +250,7 @@ describe("Core Providers Abort Tests", () => {
 		});
 	});
 
-	describe.skipIf(!process.env.Core_GATEWAY_API_KEY)("Vercel Core Gateway Provider Abort", () => {
+	describe.skipIf(!process.env.AI_GATEWAY_API_KEY)("Vercel AI Gateway Provider Abort", () => {
 		const llm = getModel("vercel-ai-gateway", "google/gemini-2.5-flash")!;
 
 		it("should abort mid-stream", { retry: 3 }, async () => {

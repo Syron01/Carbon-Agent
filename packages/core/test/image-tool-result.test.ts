@@ -380,7 +380,7 @@ describe("Tool Results with Images", () => {
 		});
 	});
 
-	describe.skipIf(!process.env.Core_GATEWAY_API_KEY)("Vercel Core Gateway Provider (google/gemini-2.5-flash)", () => {
+	describe.skipIf(!process.env.AI_GATEWAY_API_KEY)("Vercel AI Gateway Provider (google/gemini-2.5-flash)", () => {
 		const llm = getModel("vercel-ai-gateway", "google/gemini-2.5-flash");
 
 		it("should handle tool result with only image", { retry: 3, timeout: 30000 }, async () => {

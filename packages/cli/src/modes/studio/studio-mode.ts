@@ -357,7 +357,11 @@ export class StudioMode {
 		});
 	}
 
+	private hookedConsole = false;
+
 	private hookConsole() {
+		if (this.hookedConsole) return;
+		this.hookedConsole = true;
 		const originalWrite = process.stdout.write;
 		process.stdout.write = (chunk: any, encoding?: any, callback?: any): boolean => {
 			const str = chunk.toString();
@@ -741,6 +745,21 @@ export class StudioMode {
 			return;
 		}
 
+		// SPA fallback: client-side routes (e.g. /session/abc) should serve index.html on refresh.
+		if (
+			method === "GET" &&
+			!url.pathname.startsWith("/api") &&
+			!url.pathname.startsWith("/assets/") &&
+			!path.extname(url.pathname) &&
+			(req.headers.accept || "").includes("text/html")
+		) {
+			const indexPath = path.join(this.uiDir, "index.html");
+			if (fs.existsSync(indexPath)) {
+				this.writeAssetResponse(indexPath, "no-store", res);
+				return;
+			}
+		}
+
 		if (method === "GET" && url.pathname === "/api/custom-emojis") {
 			const emojiDir = process.env.ASTRO_EMOJI_DIR ?? "";
 			try {
@@ -1055,8 +1074,9 @@ export class StudioMode {
 						this.runtime.session.prompt("Refresh the application on the connected device/browser.");
 						handled = true;
 					} else if (cmd.startsWith("/fable")) {
-						const parts = cmd.split(/\s+/);
-						const tierArg = parts[1] as "opus" | "sonnet" | "haiku" | undefined;
+						// Parse arguments from the ORIGINAL prompt (preserve task text casing)
+						const parts = prompt.trim().split(/\s+/);
+						const tierArg = (parts[1] ?? "").toLowerCase() as "opus" | "sonnet" | "haiku" | undefined;
 						const taskArg = parts.slice(2).join(" ");
 						const sm = this.runtime.session.settingsManager;
 						const _fableSettings = sm.getFableMode();
@@ -1302,7 +1322,7 @@ export class StudioMode {
 				const sf = sm.getSessionFile()!;
 				const header = sm.getHeader();
 				if (header) {
-					await fsPromises.writeFile(sf, `${JSON.stringify(header)}\\n`);
+					await fsPromises.writeFile(sf, `${JSON.stringify(header)}\n`);
 				}
 				await this.runtime.switchSession(sf);
 				res.setHeader("Content-Type", "application/json");
@@ -1530,15 +1550,19 @@ export class StudioMode {
 			return;
 		}
 
-		if (method === "POST" && url.pathname === "/api/project/select-directory") {
-			try {
-				let selectedPath = "";
-				if (process.platform === "win32") {
+			if (method === "POST" && url.pathname === "/api/project/select-directory") {
+				try {
+					let selectedPath = "";
+					if (process.platform !== "win32") {
+						res.statusCode = 400;
+						res.setHeader("Content-Type", "application/json");
+						res.end(JSON.stringify({ error: "Directory picker is only supported on Windows" }));
+						return;
+					}
 					// Modern Folder Picker hack via OpenFileDialog (File name "Select Folder")
 					const psCommand = `powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.ValidateNames = $false; $f.CheckFileExists = $false; $f.CheckPathExists = $true; $f.FileName = 'Folder Selection.'; if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output ([System.IO.Path]::GetDirectoryName($f.FileName)) }"`;
 					const { stdout } = await execAsync(psCommand);
 					selectedPath = stdout.trim();
-				}
 				res.setHeader("Content-Type", "application/json");
 				res.end(JSON.stringify({ success: true, path: selectedPath || null }));
 			} catch (e: any) {
@@ -1811,10 +1835,22 @@ export class StudioMode {
 				body += chunk;
 			});
 			req.on("end", async () => {
-				const { level } = JSON.parse(body);
-				this.runtime.session.settingsManager.setDefaultThinkingLevel(level as any);
-				res.setHeader("Content-Type", "application/json");
-				res.end(JSON.stringify({ success: true }));
+				try {
+					const { level } = JSON.parse(body);
+					const allowed = ["off", "minimal", "low", "medium", "high", "xhigh"];
+					if (typeof level !== "string" || !allowed.includes(level)) {
+						res.statusCode = 400;
+						res.setHeader("Content-Type", "application/json");
+						res.end(JSON.stringify({ error: `Invalid thinking level: ${JSON.stringify(level)}` }));
+						return;
+					}
+					this.runtime.session.settingsManager.setDefaultThinkingLevel(level as any);
+					res.setHeader("Content-Type", "application/json");
+					res.end(JSON.stringify({ success: true }));
+				} catch (e: any) {
+					res.statusCode = 400;
+					res.end(JSON.stringify({ error: e?.message ?? "Invalid request body" }));
+				}
 			});
 			return;
 		}

@@ -21,10 +21,12 @@ const OPT_SYSTEM_PROMPT =
  */
 export async function memoryMiddleware(
 	messages: EngineMessage[],
-): Promise<{ messages: EngineMessage[]; memStats: MemStats }> {
+	systemPrompt?: string,
+): Promise<{ messages: EngineMessage[]; systemPrompt: string; memStats: MemStats }> {
 	if (messages.length === 0) {
 		return {
 			messages,
+			systemPrompt: systemPrompt ?? "",
 			memStats: { durationMs: 0, originalCount: 0, compressedCount: 0, reduction: "0%", factsInjected: 0 },
 		};
 	}
@@ -32,7 +34,7 @@ export async function memoryMiddleware(
 	const startMs = Date.now();
 
 	const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
-	const queryText = lastUserMsg && typeof lastUserMsg.content === "string" ? lastUserMsg.content : "";
+	const queryText = lastUserMsg ? extractTextContent(lastUserMsg.content) : "";
 
 	// 1. RFF Compression
 	const compression = compressMessages(messages as any, queryText);
@@ -44,21 +46,11 @@ export async function memoryMiddleware(
 		memoryFacts = fetchMemory(queryText);
 	}
 
-	// 3. Inject Facts into System Prompt or Last User Message
+	// 3. Merge the memory system prompt into the engine system prompt.
+	// (A synthetic "system" EngineMessage would be dropped by the engine's
+	// convertToLlm filter, which only keeps user/assistant/toolResult.)
 	const finalMessages = [...processedMessages];
-
-	// Append the OPT system prompt to preserve existing personality
-	const systemIndex = finalMessages.findIndex((m) => (m.role as string) === "system");
-	if (systemIndex !== -1) {
-		const existing = finalMessages[systemIndex];
-		const currentText = typeof existing.content === "string" ? existing.content : "";
-		finalMessages[systemIndex] = {
-			...existing,
-			content: `${currentText}\n\n${OPT_SYSTEM_PROMPT}`,
-		} as any;
-	} else {
-		finalMessages.unshift({ role: "system", content: OPT_SYSTEM_PROMPT } as any);
-	}
+	const mergedSystemPrompt = `${systemPrompt ? `${systemPrompt}\n\n` : ""}${OPT_SYSTEM_PROMPT}`;
 
 	// Inject facts
 	if (memoryFacts.length > 0) {
@@ -86,6 +78,7 @@ export async function memoryMiddleware(
 
 	return {
 		messages: finalMessages,
+		systemPrompt: mergedSystemPrompt,
 		memStats: {
 			durationMs,
 			originalCount: compression.stats?.originalCount || messages.length,
@@ -94,6 +87,23 @@ export async function memoryMiddleware(
 			factsInjected: memoryFacts.length,
 		},
 	};
+}
+
+/**
+ * Extract plain text from an EngineMessage content field, which may be a
+ * string or an array of content parts (TextContent[] for user messages).
+ */
+function extractTextContent(content: unknown): string {
+	if (typeof content === "string") {
+		return content;
+	}
+	if (Array.isArray(content)) {
+		return content
+			.filter((c: any) => c?.type === "text" && typeof c.text === "string")
+			.map((c: any) => c.text)
+			.join("\n");
+	}
+	return "";
 }
 
 /**

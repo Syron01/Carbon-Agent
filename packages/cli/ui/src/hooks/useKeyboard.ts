@@ -14,7 +14,7 @@ export function useKeyboard(shortcuts: Shortcut[]) {
     const handleKeyDown = (e: KeyboardEvent) => {
       for (const s of shortcuts) {
         const ctrl = s.ctrl || s.meta || false;
-        const matchCtrl = s.ctrl ? e.ctrlKey : s.meta ? e.metaKey : true;
+        const matchCtrl = (s.ctrl || s.meta) ? (e.ctrlKey || e.metaKey) : true;
         if (
           e.key.toLowerCase() === s.key.toLowerCase() &&
           matchCtrl === ctrl &&

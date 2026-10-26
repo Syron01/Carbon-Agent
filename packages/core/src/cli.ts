@@ -78,7 +78,8 @@ Examples:
 	}
 
 	if (command === "list") {
-		for (const _p of PROVIDERS) {
+		for (const p of PROVIDERS) {
+			console.log(`  ${p.id.padEnd(20)} ${p.name}`);
 		}
 		return;
 	}
@@ -88,7 +89,9 @@ Examples:
 
 		if (!provider) {
 			const rl = createInterface({ input: process.stdin, output: process.stdout });
-			for (let i = 0; i < PROVIDERS.length; i++) {}
+			for (let i = 0; i < PROVIDERS.length; i++) {
+				console.log(`\n${i + 1}. ${PROVIDERS[i].name} (${PROVIDERS[i].id})`);
+			}
 
 			const choice = await prompt(rl, `Enter number (1-${PROVIDERS.length}): `);
 			rl.close();

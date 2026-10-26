@@ -71,12 +71,13 @@ export function MessageInput() {
     if (attachedFiles.length > 0) {
       finalPrompt += '\n[Attached files: ' + attachedFiles.map(f => f.name).join(', ') + ']';
     }
+    const images = attachedFiles.map(f => f.data);
     setInput('');
     setAttachedFiles([]);
     setShowCommands(false);
     setMenu(null);
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
-    sendMessage(finalPrompt);
+    sendMessage(finalPrompt, { images });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

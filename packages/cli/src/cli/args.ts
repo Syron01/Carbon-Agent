@@ -81,7 +81,12 @@ export function parseArgs(args: string[]): Args {
 		} else if (arg === "--studio") {
 			result.studio = true;
 		} else if (arg === "--timeout" && i + 1 < args.length) {
-			result.timeout = Number(args[++i]);
+			const timeoutValue = Number(args[++i]);
+			if (Number.isNaN(timeoutValue)) {
+				result.diagnostics.push({ type: "warning", message: `Invalid --timeout value "${args[i]}"; ignoring flag.` });
+			} else {
+				result.timeout = timeoutValue;
+			}
 		} else if (arg === "--output-format" && i + 1 < args.length) {
 			const value = args[++i];
 			if (value === "json" || value === "text") result.outputFormat = value;

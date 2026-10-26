@@ -68,7 +68,11 @@ export const api = {
 
   // Filesystem
   getFsTree: (dir?: string, signal?: AbortSignal) => getJSON<FileNode>(`/api/fs/tree${dir ? `?dir=${encodeURIComponent(dir)}` : ''}`, signal),
-  readFile: (path: string) => getJSON<{ content: string }>(`/api/fs/read?path=${encodeURIComponent(path)}`),
+  readFile: (path: string) => {
+    const ext = path.slice(path.lastIndexOf('.')).toLowerCase();
+    const isImage = ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp'].includes(ext);
+    return getJSON<{ content: string }>(`/api/fs/read?path=${encodeURIComponent(path)}${isImage ? '&raw=true' : ''}`);
+  },
 
   // MCP
   getMcpPanel: (signal?: AbortSignal) => getJSON<McpPanelState>('/api/mcp-panel', signal),
@@ -77,7 +81,7 @@ export const api = {
   // Todo
   getTodo: (signal?: AbortSignal) => getJSON<{ todos: TodoItem[] }>('/api/todo', signal),
   updateTodo: (action: string, data?: { id?: string; text?: string }) =>
-    postJSON<{ ok: boolean }>('/api/todo', { action, ...data }),
+    postJSON<{ ok: boolean; todos?: TodoItem[] }>('/api/todo', { action, ...data }),
 
   // Session
   forkSession: (id: string) => postJSON<{ success: boolean }>('/api/session/fork', { id }),

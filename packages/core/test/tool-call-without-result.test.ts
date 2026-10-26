@@ -143,7 +143,7 @@ describe("Tool Call Without Result Tests", () => {
 		});
 	});
 
-	describe.skipIf(!process.env.XCore_API_KEY)("xCore Provider", () => {
+	describe.skipIf(!process.env.XAI_API_KEY)("xAI Provider", () => {
 		const model = getModel("xai", "grok-3-fast");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
@@ -167,7 +167,7 @@ describe("Tool Call Without Result Tests", () => {
 		});
 	});
 
-	describe.skipIf(!hasCloudflareWorkersCoreCredentials())("Cloudflare Workers Core Provider", () => {
+	describe.skipIf(!hasCloudflareWorkersCoreCredentials())("Cloudflare Workers AI Provider", () => {
 		const model = getModel("cloudflare-workers-ai", "@cf/moonshotai/kimi-k2.6");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
@@ -175,7 +175,7 @@ describe("Tool Call Without Result Tests", () => {
 		});
 	});
 
-	describe.skipIf(!hasCloudflareAiGatewayCredentials())("Cloudflare Core Gateway Provider", () => {
+	describe.skipIf(!hasCloudflareAiGatewayCredentials())("Cloudflare AI Gateway Provider", () => {
 		const model = getModel("cloudflare-ai-gateway", "workers-ai/@cf/moonshotai/kimi-k2.6");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
@@ -191,7 +191,7 @@ describe("Tool Call Without Result Tests", () => {
 		});
 	});
 
-	describe.skipIf(!process.env.ZCore_API_KEY)("zCore Provider", () => {
+	describe.skipIf(!process.env.ZAI_API_KEY)("zAI Provider", () => {
 		const model = getModel("zai", "glm-4.5-air");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
@@ -255,7 +255,7 @@ describe("Tool Call Without Result Tests", () => {
 		});
 	});
 
-	describe.skipIf(!process.env.Core_GATEWAY_API_KEY)("Vercel Core Gateway Provider", () => {
+	describe.skipIf(!process.env.AI_GATEWAY_API_KEY)("Vercel AI Gateway Provider", () => {
 		const model = getModel("vercel-ai-gateway", "google/gemini-2.5-flash");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {

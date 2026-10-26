@@ -7,6 +7,7 @@
  */
 import fs from "fs";
 import path from "path";
+import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import { simulateGroverSearch } from "./quantum.js";
 
@@ -25,8 +26,8 @@ function getDb(): any {
 	if (db) return db;
 
 	try {
-		// Dynamic import so CI never fails at module load time
-		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		// createRequire so CI never fails at module load time (ESM has no bare require)
+		const require = createRequire(import.meta.url);
 		const Database = require("better-sqlite3");
 
 		const memDir = path.join(__dirname, "../../../../.astroagent/memory");
